@@ -36,4 +36,4 @@ jobs:
               run: |
                 pdm sync
             - name: Check format
-              run: black src --check
+              run: pdm run black src --check
