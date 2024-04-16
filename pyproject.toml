@@ -1,0 +1,33 @@
+[project]
+name = "attpc_engine"
+version = "0.1.0"
+description = "AT-TPC Monte-Carlo simulation engine"
+authors = [
+    {name = "gwm17", email = "gordonmccann215@gmail.com"},
+]
+dependencies = [
+    "spyral-utils>=0.3.0",
+    "h5py>=3.11.0",
+]
+requires-python = "<3.13,>=3.10"
+readme = "README.md"
+license = {text = "GPL-3.0"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.dev-dependencies]
+test = [
+    "pytest>=8.1.1",
+]
+format = [
+    "black==24.4.0",
+]
+docs = [
+    "mkdocs-material>=9.5.17",
+]
