@@ -52,10 +52,11 @@ def test_pipeline():
             [Excitation(16.8, 0.2), Excitation(0.0, 0.0)],
             24.0,
         )
-        result = pipeline.run()
+        distance, result = pipeline.run()
         assert np.all(pipeline.get_proton_numbers() == np.array([5, 2, 2, 5, 2, 3]))
         assert np.all(pipeline.get_mass_numbers() == np.array([10, 3, 4, 9, 4, 5]))
         assert len(result) == 6
+        assert distance == 0.0
     except PipelineError as e:
         print(f"Failed with error {e}")
         assert False
