@@ -167,11 +167,15 @@ class KinematicsPipeline:
             chain += f", {str(decay)}"
         return chain
 
-    def run(self) -> np.ndarray:
+    def run(self) -> tuple[float, np.ndarray]:
         """The method simulate an event
 
         Returns
         -------
+        float
+            The distance within the gas target that this
+            reaction occured. If there is no gas target,
+            the distance is 0.0
         numpy.ndarray
             An Nx4 array of the nuclei 4-vectors. Each unique nucleus
             is a row in the array, and each row contains the px, py, pz, E.
@@ -183,20 +187,18 @@ class KinematicsPipeline:
         ejectile_theta_cm = np.arccos(uniform(-1.0, 1.0))
         ejectile_phi_cm = uniform(0.0, np.pi * 2.0)
         projectile_energy = self.beam_energy
+        distance = 0.0
         if self.target_material is not None:
+            distance = uniform(
+                self.target_material.min_distance,
+                self.target_material.max_distance,
+            )
             projectile_energy = (
                 projectile_energy
                 - self.target_material.material.get_energy_loss(
                     self.reaction.projectile,
                     projectile_energy,
-                    np.array(
-                        [
-                            uniform(
-                                self.target_material.min_distance,
-                                self.target_material.max_distance,
-                            )
-                        ]
-                    ),
+                    np.array([distance]),
                 )
             )
         resid_ex = normalvariate(
@@ -251,7 +253,7 @@ class KinematicsPipeline:
                 ]
             )
             prev_resid = decay_result[2]
-        return self.result
+        return (distance, self.result)
 
     def get_proton_numbers(self) -> np.ndarray:
         """Get the array of proton numbers
@@ -315,7 +317,7 @@ def run_kinematics_pipeline(
     data_group.attrs["mass_numbers"] = pipeline.get_mass_numbers()
 
     for event in range(0, n_events):
-        result = pipeline.run()
-        data_group.create_dataset(f"event_{event}", data=result)  # type: ignore
-
+        distance, result = pipeline.run()
+        data = data_group.create_dataset(f"event_{event}", data=result)  # type: ignore
+        data.attrs["distance"] = distance
     output_file.close()
