@@ -37,8 +37,7 @@ class Detector_Params:
     efield: float 
     bfield: float 
     gas_target: GasTarget
-    drift_velocity: float 
-    diffusion: tuple(float,float)
+    diffusion: (float,float)
     fano_factor: float
     w_value: float
 
@@ -60,13 +59,15 @@ class Electronics_Params:
         a combination of a micromegas and THGEM
     micromegas_edge: int (timebucket)
         The micromegas edge of the detector.
+    windows_edge: int (timebucket)
+        The windows edge of the detector.
     """
     clock_freq: float
     amp_gain: int
     shaping_time: int
     mpgd_gain: int
     micromegas_edge: int
-
+    windows_edge: int
 
 class Parameters:
     """
