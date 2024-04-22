@@ -6,7 +6,7 @@ from spyral_utils.nuclear import NucleusData
 
 from .. constants import MEV_2_JOULE, MEV_2_KG, C, E_CHARGE
 
-KE_LIMIT = 0.001 # 1 eV
+KE_LIMIT = 1e-6 # 1 eV
 
 def equation_of_motion(
     t: float,
