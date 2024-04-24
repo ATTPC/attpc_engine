@@ -40,7 +40,7 @@ def transverse_diffusion_boundary(params: Parameters,
 
     return boundary
 
-def do_transverse_diffusion(pads_hit: list[int],
+def do_diffusion(pads_hit: list[int],
                             electrons: int,
                             sigma: float
 ):

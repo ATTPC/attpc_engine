@@ -262,7 +262,8 @@ class SimParticle:
                 if boundary.intersects(pad):
                     pads_hit.append(idx2)    #get actual pad number!
 
-            # do_transverse_diffusion(pads_hit,
+            print(pads_hit)
+            # do_diffusion(pads_hit,
             #                         electrons[point],
             #                         sigma)
             if idx == 0:
