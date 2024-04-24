@@ -44,9 +44,8 @@ def equation_of_motion(
     speed = math.sqrt(state[3] ** 2.0 + state[4] ** 2.0 + state[5] ** 2.0)
 
     unit_vector = state[3:] / speed  # direction
-    kinetic_energy = ejectile.mass * (
-        1.0 / math.sqrt(1.0 - (speed / C) ** 2.0) - 1.0
-    )  # MeV
+    gamma = 1.0 / math.sqrt(1.0 - (speed / C) ** 2.0)
+    kinetic_energy = ejectile.mass * (gamma - 1.0)  # MeV
 
     mass_kg = ejectile.mass * MEV_2_KG
     charge_c = ejectile.Z * E_CHARGE
@@ -60,9 +59,9 @@ def equation_of_motion(
     results[1] = state[4]
     results[2] = state[5]
     results[3] = qm * state[4] * Bfield - deceleration * unit_vector[0]
-    results[4] = qm * (-1.0 * state[3] * Bfield) - deceleration * unit_vector[1]
+    results[4] = qm * -1.0 * state[3] * Bfield - deceleration * unit_vector[1]
     results[5] = qm * Efield - deceleration * unit_vector[2]
-
+    
     return results
 
 # These function sigs must match the ODE function

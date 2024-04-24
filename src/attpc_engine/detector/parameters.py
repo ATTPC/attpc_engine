@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from spyral_utils.nuclear.target import GasTarget
 
+import numpy as np
+import shapely
+
 @dataclass
 class Detector_Params:
     """
@@ -8,8 +11,6 @@ class Detector_Params:
 
     Attributes
     ----------
-    length: float (mm)
-        Length of AT-TPC active volume.
     efield: float (V/m)
         Magnitude of the electric field. The electric field is 
         assumed to only have one component in the +z direction
@@ -31,15 +32,22 @@ class Detector_Params:
     w_value: float (eV)
         W-value of gas. This is the average energy an ionizing
         loses to create one electron-ion pair in the gas.
+    pad_x: str
+        Path to location of file containing x-coordinates of
+        the vertices of the pads
+    pad_y: str
+        Path to location of file containing y-coordinates of
+        the vertices of the pads
 
     """
-    length: float 
     efield: float 
     bfield: float 
     gas_target: GasTarget
     diffusion: (float,float)
     fano_factor: float
     w_value: float
+    pad_x: str
+    pad_y: str
 
 @dataclass
 class Electronics_Params:
@@ -88,3 +96,37 @@ class Parameters:
     ):
         self.detector = detector_params
         self.electronics = electronics_params
+        self.pads = self.make_padplane()
+
+    def make_padplane(self):
+        """
+        Makes a list of the pad plane pads.
+
+        Returns
+        -------
+        pads: list[shapely.Polygon]
+            List of polygons, one for each pad
+        """
+        # Load in geometry files
+        x_vert: np.ndarray = np.loadtxt(self.detector.pad_x,
+                                       delimiter=',',
+                                       skiprows=1)
+        y_vert: np.ndarray = np.loadtxt(self.detector.pad_y,
+                                       delimiter=',',
+                                       skiprows=1)
+        if x_vert.shape != y_vert.shape:
+            raise ValueError("pad_x and pad_y geometry files do\
+                             not contain the same number of pads!")
+        
+        # Make list of pads
+        pads = [shapely.Polygon(np.column_stack((x.T, y.T)))
+                for x, y in zip(x_vert, y_vert)] 
+
+        # pads = [shapely.Polygon(np.concatenate((np.column_stack((x.T, y.T)),
+        #                                        np.array([[x[0], y[0]]])
+        #                                        ),
+        #                                        axis=0)
+        #                         )
+        #         for x, y in zip(x_vert, y_vert)]
+
+        return pads
