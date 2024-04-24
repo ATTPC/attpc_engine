@@ -3,8 +3,10 @@ import h5py as h5
 import vector
 import shapely
 
+from numba import njit
 from .parameters import *
 from .solver import *
+from .diffusion import *
 from pathlib import Path
 from scipy.integrate import solve_ivp
 from spyral_utils.nuclear.target import GasTarget
@@ -163,7 +165,7 @@ class SimParticle:
                   params.detector.gas_target, self.nucleus),
         )
 
-        return track
+        return track.y
     
     def generate_electrons(self,
                            params: Parameters
@@ -172,7 +174,7 @@ class SimParticle:
         Find the number of electrons made at each point of the nucleus' track.
         """
         # Find energy of nucleus at each point of its track
-        velocity_squared = np.sum((self.track.y[3:] ** 2), axis=0)
+        velocity_squared = np.sum((self.track[3:] ** 2), axis=0)
         energy = self.nucleus.mass * (-1 + 1 / np.sqrt(1 - velocity_squared / (C ** 2)))    # in MeV
 
         # Find number of electrons created at each point of its track
@@ -181,26 +183,99 @@ class SimParticle:
         electrons *= 1e6 / params.detector.w_value  # Convert to eV to match units of W-value
 
         # Adjust number of electrons by Fano factor
-        fano_adjusted = [normalvariate(point, np.sqrt(params.detector.fano_factor * point))
+        fano_adjusted: list = [normalvariate(point, np.sqrt(params.detector.fano_factor * point))
                            for point in electrons]
+        fano_adjusted: np.ndarray = np.array(fano_adjusted)
         
         # Must have an integer amount of electrons at each point
         fano_adjusted = np.round(fano_adjusted)
 
+        # Remove points in trajectory that create less than 1 electron
+        mask = fano_adjusted > 1.0
+        self.track = self.track[:, mask]
+        fano_adjusted = fano_adjusted[mask]
+    
         return fano_adjusted
     
+    def z_to_tb(self,
+                   params: Parameters):
+        """
+        Converts the z-coordinate of each point in the track
+        from physical space (m) to time (time buckets).
+
+        Parameters
+        ----------
+        params: Parameters
+            All parameters for simulation.
+
+        Returns
+        -------
+        np.ndarray
+            1xN array of time buckets for N points in the track
+            that produce one or more electrons.
+        """
+        # Z coordinates of points in track
+        zpos: np.ndarray = self.track[2]
+
+        dv: float = params.calculate_drift_velocity()
+        
+        # Convert from m to time buckets
+        zpos = np.abs(zpos - params.detector.length)  # We want z relative to the micromegas
+        zpos /= dv
+        zpos += params.electronics.micromegas_edge
+
+        return zpos
+     
     def generate_hits(self,
                       params: Parameters
     ):
-        pads = params.pads
-        p = shapely.Point(-269.95294, 4.2506566)
-        mommy=0
-        for pad in range(len(pads)):
-            if pads[pad].contains(p):
-                print(pads[pad].exterior)
-                mommy+=1
+        """
+        """
+        # Store results
+        traces = {
+            'pad_number': [],
+            'pad_trace': []}
+        
+        # Apply gain factor from micropattern gas detectors
+        electrons: np.ndarray = self.electrons * params.detector.mpgd_gain
+        
+        # Find time bucket of each point in track
+        point_tb: np.ndarray = self.z_to_tb(params)
+
+        dv: float = params.calculate_drift_velocity()
+
+        for idx, tb in enumerate(point_tb):
+            # Standard deviation of transverse diffusion gaussian
+            sigma: float = np.sqrt(2 * params.detector.diffusion[0] *
+                                   dv * tb / params.detector.efield)
             
-        print(mommy)
+            # Make boundary of transverse diffusion gaussian
+            boundary: shapely.Polygon = transverse_diffusion_boundary(
+                                            params,
+                                            self.track[0][idx],
+                                            self.track[1][idx],
+                                            sigma)
+            
+            # Find pads hit
+            pads_hit = []
+            for idx2, pad in enumerate(params.pads):
+                if boundary.intersects(pad):
+                    pads_hit.append(idx2)    #get actual pad number!
+
+            # do_transverse_diffusion(pads_hit,
+            #                         electrons[point],
+            #                         sigma)
+            if idx == 0:
+                break
+    
+        # pads = params.pads
+        # p = shapely.Polygon([(-269.95294, 4.2506566), (-270, -4.3), (-270.1, -4.4)])
+        # mommy=0
+        # for pad in range(len(pads)):
+        #     if pads[pad].intersects(p):
+        #         mommy+=1
+            
+        # print(mommy)
         
 def run_simulation(params: Parameters,
                    input_path: Path
@@ -227,4 +302,3 @@ def run_simulation(params: Parameters,
                  input_data_group.attrs['proton_numbers'],
                  input_data_group.attrs['mass_numbers']
                 )
-        print(len(result.nuclei[0].electrons))

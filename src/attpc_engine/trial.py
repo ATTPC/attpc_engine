@@ -29,8 +29,10 @@ from spyral_utils.nuclear.target import TargetData, GasTarget
 
 # Specify simulation parameters
 detector = Detector_Params(
+    length = 1.0,
     efield = 60000.0,
     bfield = 3.0,  
+    mpgd_gain = 175000,
     gas_target = GasTarget(
         TargetData(
             compound = [[1, 2, 2]],
@@ -49,7 +51,6 @@ electronics = Electronics_Params(
     clock_freq = 3.125,
     amp_gain = 900,
     shaping_time = 1000,
-    mpgd_gain = 175000,
     micromegas_edge = 66,
     windows_edge = 400
     )
