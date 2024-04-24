@@ -15,23 +15,20 @@ from spyral_utils.nuclear.target import TargetData, GasTarget
 
 # # Simulate 1 event of 10Be(d,p) with the pipeline
 # pipeline = KinematicsPipeline(
-#     [
-#         Reaction(
-#                 target=nuclear_map.get_data(1, 2),
-#                 projectile=nuclear_map.get_data(4, 10),
-#                 ejectile=nuclear_map.get_data(1, 1),
-#                 )
+#     [Reaction(
+#         target=nuclear_map.get_data(1, 2),
+#         projectile=nuclear_map.get_data(4, 10),
+#         ejectile=nuclear_map.get_data(1, 1),
+#         )
 #     ],
-#     [
-#         Excitation(0.0, 0.0 )#GS, no width
+#     [Excitation(0.0)#GS, no width
 #     ],
 #     93.0,
 #     )
-
 # run_kinematics_pipeline(pipeline, 1, '/Users/zachserikow/Desktop/yup.hdf5')
+
 # Specify simulation parameters
 detector = Detector_Params(
-    length = 1000.0,
     efield = 60000.0,
     bfield = 3.0,  
     gas_target = GasTarget(
@@ -44,7 +41,9 @@ detector = Detector_Params(
         ),
     diffusion = (0.277, 0.277),
     fano_factor = 0.2,
-    w_value = 34.0
+    w_value = 34.0,
+    pad_x = '/Users/zachserikow/Desktop/x_coords.csv',
+    pad_y = '/Users/zachserikow/Desktop/y_coords.csv'
 )
 electronics = Electronics_Params(
     clock_freq = 3.125,
@@ -55,5 +54,4 @@ electronics = Electronics_Params(
     windows_edge = 400
     )
 params = Parameters(detector, electronics)
-
 run_simulation(params, '/Users/zachserikow/Desktop/yup.hdf5')
