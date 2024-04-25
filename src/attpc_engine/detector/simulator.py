@@ -14,6 +14,8 @@ from random import normalvariate
 from .. constants import MEV_2_JOULE, MEV_2_KG, C, E_CHARGE
 from .. import nuclear_map
 
+NUM_TB: float = 512
+
 class SimEvent:
     """A simulated event from the kinematics pipeline.
 
@@ -232,51 +234,45 @@ class SimParticle:
         """
         """
         # Store results
-        traces = {
-            'pad_number': [],
-            'pad_trace': []}
+        # traces = {key: np.zeros(NUM_TB) for key, _ in params.pads.items()}
+        # print(traces.keys())
+        results = {}
         
         # Apply gain factor from micropattern gas detectors
         electrons: np.ndarray = self.electrons * params.detector.mpgd_gain
-        
+
         # Find time bucket of each point in track
         point_tb: np.ndarray = self.z_to_tb(params)
 
         dv: float = params.calculate_drift_velocity()
 
         for idx, tb in enumerate(point_tb):
-            # Standard deviation of transverse diffusion gaussian
-            sigma: float = np.sqrt(2 * params.detector.diffusion[0] *
-                                   dv * tb / params.detector.efield)
+            # Standard deviation of diffusion gaussians
+            sigma_transverse: float = np.sqrt(2 * params.detector.diffusion[0] *
+                                              dv * tb / params.detector.efield)
+            sigma_longitudinal: float = np.sqrt(2 * params.detector.diffusion[1] *
+                                                dv * tb / params.detector.efield)
             
             # Make boundary of transverse diffusion gaussian
-            boundary: shapely.Polygon = transverse_diffusion_boundary(
+            boundary: shapely.Polygon = diffusion_boundary(
                                             params,
-                                            self.track[0][idx],
-                                            self.track[1][idx],
-                                            sigma)
+                                            (self.track[0][idx],
+                                             self.track[1][idx]),
+                                            sigma_transverse)
             
             # Find pads hit
-            pads_hit = []
-            for idx2, pad in enumerate(params.pads):
-                if boundary.intersects(pad):
-                    pads_hit.append(idx2)    #get actual pad number!
+            pads_hit = {key: pad for key, pad in params.pads.items()
+                        if boundary.intersects(pad)}
 
-            print(pads_hit)
-            # do_diffusion(pads_hit,
-            #                         electrons[point],
-            #                         sigma)
+            do_diffusion(results,
+                         pads_hit,
+                         electrons[idx],
+                         tb,
+                         sigma_transverse,
+                         sigma_longitudinal)
             if idx == 0:
                 break
     
-        # pads = params.pads
-        # p = shapely.Polygon([(-269.95294, 4.2506566), (-270, -4.3), (-270.1, -4.4)])
-        # mommy=0
-        # for pad in range(len(pads)):
-        #     if pads[pad].intersects(p):
-        #         mommy+=1
-            
-        # print(mommy)
         
 def run_simulation(params: Parameters,
                    input_path: Path

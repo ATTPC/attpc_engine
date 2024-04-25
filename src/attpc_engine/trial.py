@@ -44,8 +44,7 @@ detector = Detector_Params(
     diffusion = (0.277, 0.277),
     fano_factor = 0.2,
     w_value = 34.0,
-    pad_x = '/Users/zachserikow/Desktop/x_coords.csv',
-    pad_y = '/Users/zachserikow/Desktop/y_coords.csv'
+    pad_vertices = '/Users/zachserikow/Desktop/pad_vertices.csv'
 )
 electronics = Electronics_Params(
     clock_freq = 3.125,

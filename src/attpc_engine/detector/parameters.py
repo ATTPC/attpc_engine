@@ -37,24 +37,21 @@ class Detector_Params:
     w_value: float (eV)
         W-value of gas. This is the average energy an ionizing
         loses to create one electron-ion pair in the gas.
-    pad_x: str
-        Path to location of file containing x-coordinates of
-        the vertices of the pads. Vertices are in mm.
-    pad_y: str
-        Path to location of file containing y-coordinates of
-        the vertices of the pads. Vertices are in mm.
-
+    pad_vertices: str
+        Path to location of file containing pads and their
+        vertices. Each row is formatted as (pad number, x1,
+        y1, x2, y2, ...,xn, yn) where x and y are the
+        respective coordinates of the nth vertex given in mm.
     """
     length: float
     efield: float 
     bfield: float 
     mpgd_gain: int
     gas_target: GasTarget
-    diffusion: (float,float)
+    diffusion: tuple[float,float]
     fano_factor: float
     w_value: float
-    pad_x: str
-    pad_y: str
+    pad_vertices: str
 
 @dataclass
 class Electronics_Params:
@@ -107,8 +104,8 @@ class Parameters:
 
         Returns
         -------
-        float (m / time bucket):
-            Electron drift velocity
+        float
+            Electron drift velocity in m / time bucket
         """
         dv: float = self.detector.length / (self.electronics.windows_edge -
                                             self.electronics.micromegas_edge)
@@ -124,19 +121,15 @@ class Parameters:
             List of polygons, one for each pad
         """
         # Load in geometry files, converting from m to mm
-        x_vert: np.ndarray = np.loadtxt(self.detector.pad_x,
-                                       delimiter=',',
-                                       skiprows=1) * 0.001
-        y_vert: np.ndarray = np.loadtxt(self.detector.pad_y,
-                                       delimiter=',',
-                                       skiprows=1) * 0.001
-        if x_vert.shape != y_vert.shape:
-            raise ValueError("pad_x and pad_y geometry files do\
-                             not contain the same number of pads!")
-        
-        # Make list of pads do a dict comprehension to get pad numbs!
-        pads = [shapely.Polygon(np.column_stack((x.T, y.T)))
-                for x, y in zip(x_vert, y_vert)] 
+        pad_vert: np.ndarray = np.loadtxt(self.detector.pad_vertices,
+                                          delimiter=',',
+                                          skiprows=1)
+        pad_vert[:, 1:] *= 0.001
+
+        # Make dictionary of pads
+        pads: dict = {int(idx[0]): shapely.Polygon(
+                                    np.column_stack((idx[1::2].T, idx[2::2].T)))
+                        for idx in pad_vert} 
 
         # pads = [shapely.Polygon(np.concatenate((np.column_stack((x.T, y.T)),
         #                                        np.array([[x[0], y[0]]])
