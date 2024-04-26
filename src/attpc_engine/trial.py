@@ -13,6 +13,9 @@ from attpc_engine.kinematics.pipeline import (
 from attpc_engine import nuclear_map
 from spyral_utils.nuclear.target import TargetData, GasTarget
 
+import time
+st = time.time()
+
 # # Simulate 1 event of 10Be(d,p) with the pipeline
 # pipeline = KinematicsPipeline(
 #     [Reaction(
@@ -55,3 +58,10 @@ electronics = Electronics_Params(
     )
 params = Parameters(detector, electronics)
 run_simulation(params, '/Users/zachserikow/Desktop/yup.hdf5')
+
+# get the end time
+et = time.time()
+
+# get the execution time
+elapsed_time = et - st
+print('Execution time:', elapsed_time, 'seconds')

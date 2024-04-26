@@ -39,7 +39,6 @@ class SimEvent:
     nuclei: list[SimParticle]
         Instance of SimParticle for each nuclei in the exit channel of the pipeline.
     """
-
     def __init__(
         self,
         params: Parameters,
@@ -187,10 +186,10 @@ class SimParticle:
         # Adjust number of electrons by Fano factor
         fano_adjusted: list = [normalvariate(point, np.sqrt(params.detector.fano_factor * point))
                            for point in electrons]
-        fano_adjusted: np.ndarray = np.array(fano_adjusted)
+        fano_adjusted = np.array(fano_adjusted)
         
         # Must have an integer amount of electrons at each point
-        fano_adjusted = np.round(fano_adjusted)
+        fano_adjusted = fano_adjusted.astype(int) #= np.round(fano_adjusted)
 
         # Remove points in trajectory that create less than 1 electron
         mask = fano_adjusted > 1.0
@@ -244,33 +243,15 @@ class SimParticle:
         # Find time bucket of each point in track
         point_tb: np.ndarray = self.z_to_tb(params)
 
-        dv: float = params.calculate_drift_velocity()
-
         for idx, tb in enumerate(point_tb):
-            # Standard deviation of diffusion gaussians
-            sigma_transverse: float = np.sqrt(2 * params.detector.diffusion[0] *
-                                              dv * tb / params.detector.efield)
-            sigma_longitudinal: float = np.sqrt(2 * params.detector.diffusion[1] *
-                                                dv * tb / params.detector.efield)
+            point = diffuse_point(params,
+                                  (self.track[0][idx],
+                                   self.track[1][idx]),
+                                  electrons[idx],
+                                  tb)
+            point.do_transversenew()
             
-            # Make boundary of transverse diffusion gaussian
-            boundary: shapely.Polygon = diffusion_boundary(
-                                            params,
-                                            (self.track[0][idx],
-                                             self.track[1][idx]),
-                                            sigma_transverse)
-            
-            # Find pads hit
-            pads_hit = {key: pad for key, pad in params.pads.items()
-                        if boundary.intersects(pad)}
-
-            do_diffusion(results,
-                         pads_hit,
-                         electrons[idx],
-                         tb,
-                         sigma_transverse,
-                         sigma_longitudinal)
-            if idx == 0:
+            if idx == 20:
                 break
     
         
