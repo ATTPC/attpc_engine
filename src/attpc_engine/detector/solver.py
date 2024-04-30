@@ -8,6 +8,8 @@ from .. constants import MEV_2_JOULE, MEV_2_KG, C, E_CHARGE
 
 KE_LIMIT = 1e-6 # 1 eV
 
+# State = [x, y, z, px, py, pz]
+# Derivative = [vx, vy, vz, ax, ay, az] (returns)
 def equation_of_motion(
     t: float,
     state: np.ndarray,
@@ -38,30 +40,33 @@ def equation_of_motion(
     Returns
     -------
     ndarray
-        the derivatives of the state, (vx, vy, vz, ax, ay, az)
+        the derivatives of the state
     """
 
-    speed = math.sqrt(state[3] ** 2.0 + state[4] ** 2.0 + state[5] ** 2.0)
-
-    unit_vector = state[3:] / speed  # direction
-    gamma = 1.0 / math.sqrt(1.0 - (speed / C) ** 2.0)
-    kinetic_energy = ejectile.mass * (gamma - 1.0)  # MeV
-
+    momentum = math.sqrt(state[3] ** 2.0 + state[4] ** 2.0 + state[5] ** 2.0)
     mass_kg = ejectile.mass * MEV_2_KG
+    p_m = momentum / mass_kg
+    speed = p_m / math.sqrt((1.0 + (p_m * 1.0 / C) ** 2.0))
+
+    unit_vector = state[3:] / momentum  # direction
+    velo = unit_vector * speed
+    kinetic_energy = ejectile.mass * (
+        1.0 / math.sqrt(1.0 - (speed / C) ** 2.0) - 1.0
+    )  # MeV
+
     charge_c = ejectile.Z * E_CHARGE
-    qm = charge_c / mass_kg
 
     deceleration = (
         target.get_dedx(ejectile, kinetic_energy) * MEV_2_JOULE * target.density * 100.0
-    ) / mass_kg
+    )
     results = np.zeros(6)
-    results[0] = state[3]
-    results[1] = state[4]
-    results[2] = state[5]
-    results[3] = qm * state[4] * Bfield - deceleration * unit_vector[0]
-    results[4] = qm * -1.0 * state[3] * Bfield - deceleration * unit_vector[1]
-    results[5] = qm * Efield - deceleration * unit_vector[2]
-    
+    results[0] = velo[0]
+    results[1] = velo[1]
+    results[2] = velo[2]
+    results[3] = charge_c * velo[1] * Bfield - deceleration * unit_vector[0]
+    results[4] = charge_c * (-1.0 * velo[0] * Bfield) - deceleration * unit_vector[1]
+    results[5] = charge_c * Efield - deceleration * unit_vector[2]
+
     return results
 
 # These function sigs must match the ODE function
@@ -101,7 +106,10 @@ def stop_condition(
         this function returns zero the termination condition has been reached.
 
     """
-    speed = math.sqrt(state[3] ** 2.0 + state[4] ** 2.0 + state[5] ** 2.0)
+    momentum = math.sqrt(state[3] ** 2.0 + state[4] ** 2.0 + state[5] ** 2.0)
+    mass_kg = ejectile.mass * MEV_2_KG
+    p_m = momentum / mass_kg
+    speed = p_m / math.sqrt((1.0 + (p_m * 1.0 / C) ** 2.0))
     kinetic_energy = ejectile.mass * (
         1.0 / math.sqrt(1.0 - (speed / C) ** 2.0) - 1.0
     )  # MeV
@@ -145,7 +153,6 @@ def forward_z_bound_condition(
     """
     return state[2] - 1.0
 
-
 # These function sigs must match the ODE function
 def backward_z_bound_condition(
     t: float,
@@ -184,7 +191,6 @@ def backward_z_bound_condition(
 
     """
     return state[2]
-
 
 # These function sigs must match the ODE function
 def rho_bound_condition(

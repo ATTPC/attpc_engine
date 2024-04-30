@@ -51,7 +51,8 @@ class Detector_Params:
     diffusion: tuple[float,float]
     fano_factor: float
     w_value: float
-    pad_vertices: str
+    pad_map: str
+    pad_map_parameters: tuple[float, float, float]
 
 @dataclass
 class Electronics_Params:
@@ -109,8 +110,8 @@ class Parameters:
         """
         dv: float = self.detector.length / (self.electronics.windows_edge -
                                             self.electronics.micromegas_edge)
-        return dv
-
+        return dv 
+        
     def make_padplane(self):
         """
         Makes a list of the pad plane pads.
@@ -120,22 +121,9 @@ class Parameters:
         pads: list[shapely.Polygon]
             List of polygons, one for each pad
         """
-        # Load in geometry files, converting from m to mm
-        pad_vert: np.ndarray = np.loadtxt(self.detector.pad_vertices,
-                                          delimiter=',',
-                                          skiprows=1)
-        pad_vert[:, 1:] *= 0.001
+        pad_map: np.ndarray = np.loadtxt(self.detector.pad_map,
+                                         dtype='int',
+                                         delimiter=',',
+                                         skiprows=0)
 
-        # Make dictionary of pads
-        pads: dict = {int(idx[0]): shapely.Polygon(
-                                    np.column_stack((idx[1::2].T, idx[2::2].T)))
-                        for idx in pad_vert} 
-
-        # pads = [shapely.Polygon(np.concatenate((np.column_stack((x.T, y.T)),
-        #                                        np.array([[x[0], y[0]]])
-        #                                        ),
-        #                                        axis=0)
-        #                         )
-        #         for x, y in zip(x_vert, y_vert)]
-
-        return pads
+        return pad_map

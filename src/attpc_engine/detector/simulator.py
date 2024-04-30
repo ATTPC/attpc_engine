@@ -59,6 +59,14 @@ class SimEvent:
             counter += 3
         self.nuclei.append(SimParticle(params, data[counter - 2], distance,
                                        proton_numbers[counter - 2], mass_numbers[counter - 2]))
+    
+    def write_data(self):
+        """
+        """
+        pads_hit = {}
+        for particle in self.nuclei:
+            pads_hit = merge_dicts(pads_hit, particle.hits)
+        #have to implement pad electronics now
 
 
 class SimParticle:
@@ -107,7 +115,7 @@ class SimParticle:
         self.nucleus = nuclear_map.get_data(proton_number, mass_number)
         self.track = self.generate_track(params, distance)
         self.electrons = self.generate_electrons(params)
-        self.generate_hits(params)
+        self.hits = self.generate_hits(params)
 
     def generate_track(
             self,
@@ -130,10 +138,10 @@ class SimParticle:
         scipy.integrate.solve_ivp bunch object
             Solution to ODE
         """
-        # Find initial state of nucleus. (x, y, z, vx, vy, vz)
+        # Find initial state of nucleus. (x, y, z, px, py, pz)
         initial_state: np.ndarray = np.zeros(6)
-        initial_state[2] = distance
-        initial_state[3:] = self.data[:3] / self.data[3] * C
+        initial_state[2] = distance # m
+        initial_state[3:] = self.data[:3] * MEV_2_KG * C   # kg * m/s
     
         #Set ODE stop conditions. See SciPy solve_ivp docs
         stop_condition.terminal = True
@@ -148,7 +156,7 @@ class SimParticle:
         # Time steps to solve ODE at. Assume maximum time for nucleus to 
         # cross detector is the time taken travelling at 0.01 * C. Evaluate 
         # the time every 1e-11 sec.
-        time_steps = np.linspace(0, 3.34e-7, 33401)#3341
+        time_steps = np.linspace(0, 3.34e-7, 33401)
 
         track = solve_ivp(
             equation_of_motion,
@@ -175,8 +183,11 @@ class SimParticle:
         Find the number of electrons made at each point of the nucleus' track.
         """
         # Find energy of nucleus at each point of its track
-        velocity_squared = np.sum((self.track[3:] ** 2), axis=0)
-        energy = self.nucleus.mass * (-1 + 1 / np.sqrt(1 - velocity_squared / (C ** 2)))    # in MeV
+        momentum: float = np.sqrt(np.sum((self.track[3:] ** 2), axis=0))
+        mass_kg = self.nucleus.mass * MEV_2_KG
+        p_m = momentum / mass_kg
+        speed = p_m / np.sqrt((1.0 + (p_m * 1.0 / C) ** 2.0))
+        energy = self.nucleus.mass * (-1 + 1 / np.sqrt(1 - (speed / C) ** 2))   # in MeV
 
         # Find number of electrons created at each point of its track
         electrons = np.zeros_like(energy)
@@ -189,7 +200,7 @@ class SimParticle:
         fano_adjusted = np.array(fano_adjusted)
         
         # Must have an integer amount of electrons at each point
-        fano_adjusted = fano_adjusted.astype(int) #= np.round(fano_adjusted)
+        fano_adjusted = fano_adjusted.astype(int)
 
         # Remove points in trajectory that create less than 1 electron
         mask = fano_adjusted > 1.0
@@ -233,8 +244,6 @@ class SimParticle:
         """
         """
         # Store results
-        # traces = {key: np.zeros(NUM_TB) for key, _ in params.pads.items()}
-        # print(traces.keys())
         results = {}
         
         # Apply gain factor from micropattern gas detectors
@@ -249,12 +258,35 @@ class SimParticle:
                                    self.track[1][idx]),
                                   electrons[idx],
                                   tb)
-            point.do_transversenew()
-            
-            if idx == 20:
-                break
-    
+            intermediate: dict[int: np.ndarray] = point.pads
+            results = merge_dicts(results, intermediate)
         
+        return results
+
+def merge_dicts(old: dict,
+                new: dict):
+    """
+    """
+    if not bool(old) and not bool(new):
+        return {}
+    
+    elif not bool(old):
+        return new
+    
+    elif not bool(new):
+        return old
+    
+    else:
+        combined = {key: old.get(key, 0) + new.get(key, 0)
+                  for key in set(old) | set(new)}  
+        return combined
+    
+def data_to_h5():
+    """
+    """
+
+
+
 def run_simulation(params: Parameters,
                    input_path: Path
     ):
@@ -274,9 +306,9 @@ def run_simulation(params: Parameters,
     input_data_group = input['data']
 
     for event in range(input_data_group.attrs['n_events']):
-        result =SimEvent(params,
-                 input_data_group[f'event_{event}'],
-                 input_data_group[f'event_{event}'].attrs['distance'],
-                 input_data_group.attrs['proton_numbers'],
-                 input_data_group.attrs['mass_numbers']
-                )
+        sim = SimEvent(params,
+                          input_data_group[f'event_{event}'],
+                          input_data_group[f'event_{event}'].attrs['distance'],
+                          input_data_group.attrs['proton_numbers'],
+                          input_data_group.attrs['mass_numbers'])
+        sim.write_data()

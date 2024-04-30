@@ -1,10 +1,12 @@
 import shapely
 import scipy
+import math
 
 from .parameters import *
+from .beam_pads import BEAM_PADS
 from random import normalvariate
 
-NUM_TB: float = 512
+NUM_TB: int = 512
 PIXEL_SIZE: float = 1e-3    # m
 
 def gaussian_2d(x:float,
@@ -16,7 +18,7 @@ def gaussian_2d(x:float,
      for both x and y and there is no correlation between the two variables.
      """
      c1: float = 1 / 2 / np.pi / (sigma ** 2)
-     a1: float = (-1 / 2) * (1 / sigma ** 2) * ((x - mu[0]) ** 2) * ((y - mu[1]) ** 2)
+     a1: float = (-1 / 2) * (1 / sigma ** 2) * ((x - mu[0]) ** 2) + ((y - mu[1]) ** 2)
      
      return (c1 * np.exp(a1))
 
@@ -35,10 +37,11 @@ class diffuse_point:
                                dv * time / params.detector.efield)
         self.sigma_l = np.sqrt(2 * params.detector.diffusion[1] *
                                dv * time / params.detector.efield)
+        
         self.center = center
         self.electrons = electrons
         self.time = time
-        self.pads = self.pads_hit(params)
+        self.pads = self.find_pads_hit(params)
 
     def transverse_boundary(self):
         """
@@ -65,7 +68,7 @@ class diffuse_point:
         """
         # Make circlular boundary
         radius = 3 * self.sigma_t
-        theta = np.linspace(0.0, 2.0 * np.pi, 100000)
+        theta = np.linspace(0.0, 2.0 * np.pi, 1000)
         array = np.zeros(shape=(len(theta), 2))
         array[:, 0] = self.center[0] + np.cos(theta) * radius
         array[:, 1] = self.center[1] + np.sin(theta) * radius
@@ -81,83 +84,41 @@ class diffuse_point:
         """
         boundary = self.transverse_boundary()
         pads_hit = {key: pad for key, pad in params.pads.items()
-                    if boundary.intersects(pad)}
+                    if boundary.intersects(pad) or boundary.contains(pad)}
         
         return pads_hit
-
-    def do_transverse(self):
+    
+    def find_pads_hit(self,
+                      params: Parameters):
         """
         """
         results = {}
-
-        pixel_size: float = 1e-4    # m
-        pixel_centerx: float = self.center[0]
-        pixel_centery: float = self.center[1]
-        distance: float = 0
-
-        # Catch case where diffusion is so small it is 
-        # contained in one pixel
-        if (pixel_size / 2) > (3 * self.sigma_t):
-            pixel = shapely.Point(pixel_centerx, pixel_centery)
-
-            for _, (key, pad) in enumerate(self.pads.items()):
-                pixel_electrons = int(np.floor(self.electrons *
-                                               gaussian_2d(pixel_centerx, 
-                                                           pixel_centery,
-                                                           self.center,
-                                                           self.sigma_t) *
-                                               pixel_size ** 2))
-                
-                if pad.contains(pixel) and key not in results:
-                    results[key] = {'electrons': pixel_electrons,
-                                    'timebucket': self.time}
-                    
-                elif pad.contains(pixel) and key in results:
-                    results[key]['electrons'] += pixel_electrons
-        
-            return results
-             
-        # Loop only in postive x and positive y quandrant
-        while True:
-            pixel_centerx += pixel_size / 2
-            if (pixel_centerx - self.center[0]) > (3 * self.sigma_t):
-                break
-
-            while True:
-                pixel_centery += pixel_size / 2
-                distance = np.sqrt((pixel_centerx - self.center[0]) ** 2 +
-                                   (pixel_centery - self.center[1]) ** 2)
-                
-                if distance > (3 * self.sigma_t):
-                    break
-
-                # Construct array of pixels in four quadrants
-                pixels = np.array([[pixel_centerx, pixel_centery],    # +x, +y
-                                    [-1 * pixel_centerx, pixel_centery],   # -x, +y
-                                    [-1 * pixel_centerx, -1 * pixel_centery],  # -x, -y
-                                    [pixel_centerx, -1 * pixel_centery]])  # +x, -y
-
-                for quadrant in pixels:
-                    pixel = shapely.Point(quadrant)
-
-                    for _, (key, pad) in enumerate(self.pads.items()):
-                        pixel_electrons = int(np.floor(self.electrons *
-                                                       gaussian_2d(pixel_centerx, 
-                                                                   pixel_centery,
-                                                                   self.center,
-                                                                   self.sigma_t) *
-                                                       pixel_size ** 2))
-
-                        if pad.contains(pixel) and key not in results:
-                                results[key] = {'electrons': pixel_electrons,
-                                                'timebucket': self.time}
-                                
-                        elif pad.contains(pixel) and key in results:
-                                results[key]['electrons'] += pixel_electrons
-
-        return results
+        trace: np.ndarray = np.zeros(NUM_TB)
+        if params.detector.diffusion == (0, 0):
+            #No diffusion
+            index: tuple[int, int] | None = position_to_index(params,
+                                                              self.center)
+            if index is None:
+                return results
+            
+            pad: int = params.pads[index[0], index[1]]
+            # Ensure electron hits pad plane and hits a non-beam pad
+            if pad != -1 and pad not in BEAM_PADS:
+                trace[math.floor(self.time)] = self.electrons
+                results[pad] = trace
+                return results
     
-    def do_transversenew(self):
+        elif params.detector.diffusion[0] != 0:
+            # At least transverse
+            5
+
+        elif params.detector.diffusion[1] != 0:
+            # only lateral
+            5
+    
+        return 0
+    
+    def do_transverse(self):
         """
         """
         results = {}
@@ -175,13 +136,16 @@ class diffuse_point:
                                                   mean=[pixel_centerx, pixel_centery],
                                                   cov=self.sigma_t**2)
         pdf *= (PIXEL_SIZE ** 2) * self.electrons
+        pdf = pdf.astype(int)
 
-        # results = {key: {'electrons': , 'timebucket':}] for key, pad in self.pads.items()
-        #             if boundary.intersects(pad)}
-        # for key, pad in self.pads.items():
-
-        #     results = {key: {'electrons': } for x,y in np.column_stack((xx.ravel(), yy.ravel)) 
-        #                if pad.contains(shapely.Point(x,y))}
+        for key, pad in self.pads.items():
+            pads_e = [pdf.ravel()[idx] for idx, point in 
+                       enumerate(np.column_stack((xx.ravel(), yy.ravel())))
+                       if pad.contains(shapely.Point(point[0], point[1]))]
+                       #and dist(self.center, point) > 3 * self.sigma_t]
+            results[key] = {'electrons': [np.sum(pads_e)], 'time': [self.time]}
+        
+        return results
 
     
     def do_longitudinal(self,
@@ -198,4 +162,26 @@ class diffuse_point:
         #case where we want both lateral and longitudinal
         results_t = self.do_transverse()
         results_l = self.do_longitudinal(results_t)
-       
+
+def position_to_index(params: Parameters,
+                      position: tuple[float, float]):
+    """
+    #map currently not symmetric, ask daniel
+    """
+    # coordinates in mm
+    x: float = position[0] * 1000.0
+    y: float = position[1] * 1000.0
+
+    low_edge: float = params.detector.pad_map_parameters[0]
+    high_edge: float = params.detector.pad_map_parameters[1]
+    bin_size: float = params.detector.pad_map_parameters[2]
+
+    # Check if position is off pad plane 
+    if (abs(math.floor(x)) > high_edge) or (abs(math.floor(y)) > high_edge):
+        return None
+
+    x_idx: int = int((math.floor(x) - low_edge) / bin_size)
+    y_idx: int = int((math.floor(y) - low_edge) / bin_size)
+    
+    return (x_idx, y_idx)
+

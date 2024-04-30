@@ -21,11 +21,9 @@ st = time.time()
 #     [Reaction(
 #         target=nuclear_map.get_data(1, 2),
 #         projectile=nuclear_map.get_data(4, 10),
-#         ejectile=nuclear_map.get_data(1, 1),
-#         )
-#     ],
-#     [Excitation(0.0)#GS, no width
-#     ],
+#         ejectile=nuclear_map.get_data(1, 2),
+#         )],
+#     [Excitation(0.0)],
 #     93.0,
 #     )
 # run_kinematics_pipeline(pipeline, 1, '/Users/zachserikow/Desktop/yup.hdf5')
@@ -42,12 +40,12 @@ detector = Detector_Params(
             pressure = 600,
             thickness = None
             ),
-        nuclear_map
-        ),
-    diffusion = (0.277, 0.277),
+        nuclear_map),
+    diffusion = (0, 0),
     fano_factor = 0.2,
     w_value = 34.0,
-    pad_vertices = '/Users/zachserikow/Desktop/pad_vertices.csv'
+    pad_map = '/Volumes/e20009/LUT.txt',
+    pad_map_parameters = [-280.0, 279.9, 0.1]
 )
 electronics = Electronics_Params(
     clock_freq = 3.125,
