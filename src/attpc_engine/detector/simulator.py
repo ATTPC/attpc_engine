@@ -1,5 +1,6 @@
 import numpy as np
 import h5py as h5
+import math
 import vector
 import shapely
 
@@ -14,7 +15,21 @@ from random import normalvariate
 from .. constants import MEV_2_JOULE, MEV_2_KG, C, E_CHARGE
 from .. import nuclear_map
 
-NUM_TB: float = 512
+NUM_TB: int = 512
+TRACE_SIZE: int = 517
+
+def get_response(params: Parameters):
+    """
+    """ 
+    response = np.zeros(NUM_TB)
+    for tb in range(NUM_TB):
+        c1 = 1000   # FIX THISSS
+        c2 = tb / (params.electronics.shaping_time *
+                   params.electronics.clock_freq * 0.001)
+        response[tb] = int(c1 * math.exp(-3 * c2) * (c2 ** 3) *
+                           math.sin(c2))
+        
+    return response
 
 class SimEvent:
     """A simulated event from the kinematics pipeline.
@@ -59,15 +74,36 @@ class SimEvent:
             counter += 3
         self.nuclei.append(SimParticle(params, data[counter - 2], distance,
                                        proton_numbers[counter - 2], mass_numbers[counter - 2]))
-    
-    def write_data(self):
+        self.digitize(params)
+        
+    def digitize(self,
+                 params: Parameters):
         """
         """
+        # Find all pads hit in simulated event
         pads_hit = {}
         for particle in self.nuclei:
             pads_hit = merge_dicts(pads_hit, particle.hits)
-        #have to implement pad electronics now
+        
+        # Response function of GET electronics
+        response: np.ndarray = get_response(params)
 
+        # Make AT-TPC traces
+        data = np.full((len(pads_hit), TRACE_SIZE), -1)
+        for idx in enumerate(pads_hit.items()):
+            # Convolve electrons with response function
+            signal = np.convolve(idx[1][1],
+                                 response,
+                                 mode='full').astype(int)
+            signal = signal[:512]
+
+            # Combine hardware ID with signal for complete AT-TPC trace
+            trace = np.concatenate((params.elec_map[idx[1][0]],
+                                    signal),
+                                   axis=None)
+            data[idx[0]] = trace
+
+        return data
 
 class SimParticle:
     """
@@ -280,15 +316,27 @@ def merge_dicts(old: dict,
         combined = {key: old.get(key, 0) + new.get(key, 0)
                   for key in set(old) | set(new)}  
         return combined
-    
-def data_to_h5():
+
+def write_data(params: Parameters,
+               event: SimEvent,
+               output_path):
     """
     """
+    # Find all pads hit in one simulated event
+    pads_hit = {}
+    for particle in event.nuclei:
+        pads_hit = merge_dicts(pads_hit, particle.hits)
 
+    # Make AT-TPC traces
+    data = np.array()
+    for pad, trace in pads_hit.items():
+        5
 
+    print(pads_hit.keys())
 
 def run_simulation(params: Parameters,
-                   input_path: Path
+                   input_path: str,
+                   output_path: str
     ):
     """
     Runs the AT-TPC simulation with the input parameters on the specified
@@ -311,4 +359,4 @@ def run_simulation(params: Parameters,
                           input_data_group[f'event_{event}'].attrs['distance'],
                           input_data_group.attrs['proton_numbers'],
                           input_data_group.attrs['mass_numbers'])
-        sim.write_data()
+        #sim.write_data(params, output_path)

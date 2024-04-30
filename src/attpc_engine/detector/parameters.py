@@ -51,8 +51,6 @@ class Detector_Params:
     diffusion: tuple[float,float]
     fano_factor: float
     w_value: float
-    pad_map: str
-    pad_map_parameters: tuple[float, float, float]
 
 @dataclass
 class Electronics_Params:
@@ -78,6 +76,24 @@ class Electronics_Params:
     micromegas_edge: int
     windows_edge: int
 
+@dataclass
+class Pad_Params:
+    """
+    Data class containing parameters related to the 
+    pads.
+
+    Attributes
+    ----------
+    pad_vertices: str
+        Path to location of file containing pads and their
+        vertices. Each row is formatted as (pad number, x1,
+        y1, x2, y2, ...,xn, yn) where x and y are the
+        respective coordinates of the nth vertex given in mm.
+    """
+    map: str
+    map_params: tuple[float, float, float]
+    electronics: str
+
 class Parameters:
     """
     A wrapper class containing all the input detector and electronics parameters
@@ -93,11 +109,14 @@ class Parameters:
     def __init__(
             self,
             detector_params: Detector_Params,
-            electronics_params: Electronics_Params
+            electronics_params: Electronics_Params,
+            pad_params: Pad_Params
     ):
         self.detector = detector_params
         self.electronics = electronics_params
-        self.pads = self.make_padplane()
+        self.pads = pad_params
+        self.pad_map = self.load_pad_map()
+        self.elec_map = self.pad_to_hardwareid()
 
     def calculate_drift_velocity(self):
         """
@@ -112,18 +131,37 @@ class Parameters:
                                             self.electronics.micromegas_edge)
         return dv 
         
-    def make_padplane(self):
+    def load_pad_map(self):
         """
-        Makes a list of the pad plane pads.
+        Loads pad map.
 
         Returns
         -------
-        pads: list[shapely.Polygon]
-            List of polygons, one for each pad
+        map: np.ndarray
+            Array indexed by physical position that
+            returns the pad number at that position.
         """
-        pad_map: np.ndarray = np.loadtxt(self.detector.pad_map,
+        map: np.ndarray = np.loadtxt(self.pads.map,
                                          dtype='int',
                                          delimiter=',',
                                          skiprows=0)
 
-        return pad_map
+        return map
+    
+    def pad_to_hardwareid(self):
+        """
+        """
+        map = {}
+        with open(self.pads.electronics, "r") as elecfile:
+            elecfile.readline()
+            lines = elecfile.readlines()
+            for line in lines:
+                entries = line.split(",")
+                hardware = np.array((int(entries[0]),
+                                     int(entries[1]),
+                                     int(entries[2]),
+                                     int(entries[3]),
+                                     int(entries[4])))
+                map[int(entries[4])] = hardware
+
+        return map

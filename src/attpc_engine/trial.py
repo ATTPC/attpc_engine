@@ -2,6 +2,7 @@ from attpc_engine.detector.simulator import run_simulation
 from attpc_engine.detector.parameters import (
     Detector_Params,
     Electronics_Params,
+    Pad_Params,
     Parameters
     )
 from attpc_engine.kinematics.reaction import Reaction, Decay
@@ -16,17 +17,17 @@ from spyral_utils.nuclear.target import TargetData, GasTarget
 import time
 st = time.time()
 
-# # Simulate 1 event of 10Be(d,p) with the pipeline
-# pipeline = KinematicsPipeline(
-#     [Reaction(
-#         target=nuclear_map.get_data(1, 2),
-#         projectile=nuclear_map.get_data(4, 10),
-#         ejectile=nuclear_map.get_data(1, 2),
-#         )],
-#     [Excitation(0.0)],
-#     93.0,
-#     )
-# run_kinematics_pipeline(pipeline, 1, '/Users/zachserikow/Desktop/yup.hdf5')
+# Simulate 1 event of 10Be(d,p) with the pipeline
+pipeline = KinematicsPipeline(
+    [Reaction(
+        target=nuclear_map.get_data(1, 2),
+        projectile=nuclear_map.get_data(4, 10),
+        ejectile=nuclear_map.get_data(1, 2),
+        )],
+    [Excitation(0.0)],
+    93.0,
+    )
+run_kinematics_pipeline(pipeline, 1, '/Users/zachserikow/Desktop/yup.hdf5')
 
 # Specify simulation parameters
 detector = Detector_Params(
@@ -43,19 +44,20 @@ detector = Detector_Params(
         nuclear_map),
     diffusion = (0, 0),
     fano_factor = 0.2,
-    w_value = 34.0,
-    pad_map = '/Volumes/e20009/LUT.txt',
-    pad_map_parameters = [-280.0, 279.9, 0.1]
-)
+    w_value = 34.0)
 electronics = Electronics_Params(
     clock_freq = 3.125,
     amp_gain = 900,
     shaping_time = 1000,
     micromegas_edge = 66,
-    windows_edge = 400
-    )
-params = Parameters(detector, electronics)
-run_simulation(params, '/Users/zachserikow/Desktop/yup.hdf5')
+    windows_edge = 400)
+pads = Pad_Params(map = '/Users/zachserikow/Desktop/LUT.txt',
+                  map_params = [-280.0, 279.9, 0.1],
+                  electronics = '/Users/zachserikow/Desktop/pad_electronics_legacy.csv')
+params = Parameters(detector, electronics, pads)
+run_simulation(params,
+               '/Users/zachserikow/Desktop/yup.hdf5',
+               'blah')
 
 # get the end time
 et = time.time()

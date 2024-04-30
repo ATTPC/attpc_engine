@@ -4,9 +4,9 @@ import math
 
 from .parameters import *
 from .beam_pads import BEAM_PADS
-from random import normalvariate
 
 NUM_TB: int = 512
+
 PIXEL_SIZE: float = 1e-3    # m
 
 def gaussian_2d(x:float,
@@ -101,7 +101,7 @@ class diffuse_point:
             if index is None:
                 return results
             
-            pad: int = params.pads[index[0], index[1]]
+            pad: int = params.pad_map[index[0], index[1]]
             # Ensure electron hits pad plane and hits a non-beam pad
             if pad != -1 and pad not in BEAM_PADS:
                 trace[math.floor(self.time)] = self.electrons
@@ -172,9 +172,9 @@ def position_to_index(params: Parameters,
     x: float = position[0] * 1000.0
     y: float = position[1] * 1000.0
 
-    low_edge: float = params.detector.pad_map_parameters[0]
-    high_edge: float = params.detector.pad_map_parameters[1]
-    bin_size: float = params.detector.pad_map_parameters[2]
+    low_edge: float = params.pads.map_params[0]
+    high_edge: float = params.pads.map_params[1]
+    bin_size: float = params.pads.map_params[2]
 
     # Check if position is off pad plane 
     if (abs(math.floor(x)) > high_edge) or (abs(math.floor(y)) > high_edge):
