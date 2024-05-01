@@ -2,11 +2,11 @@ import shapely
 import scipy
 import math
 
+from numba import njit
 from .parameters import *
 from .beam_pads import BEAM_PADS
 
 NUM_TB: int = 512
-
 PIXEL_SIZE: float = 1e-3    # m
 
 def gaussian_2d(x:float,
@@ -42,112 +42,129 @@ class diffuse_point:
         self.electrons = electrons
         self.time = time
         self.pads = self.find_pads_hit(params)
-
-    def transverse_boundary(self):
-        """
-        The transverse diffusion is modeled as a 2D gaussian. This
-        function makes a circle where the points are 3 sigma away 
-        from the center of the gaussian.
-
-        Parameters
-        ----------
-        params: Parameters
-            All parameters for simulation.
-        center_x: float
-            Gaussian center x-coordinate.
-        center_y: float
-            Gaussian center y-coordinate.
-        sigma: float
-            Standard deviation of gaussian.
-            Assumed to be the same in x and y.
-        
-        Returns
-        -------
-        shapely.Polygon
-            Polygon of boundary of transverse diffusion gaussian.
-        """
-        # Make circlular boundary
-        radius = 3 * self.sigma_t
-        theta = np.linspace(0.0, 2.0 * np.pi, 1000)
-        array = np.zeros(shape=(len(theta), 2))
-        array[:, 0] = self.center[0] + np.cos(theta) * radius
-        array[:, 1] = self.center[1] + np.sin(theta) * radius
-
-        # Convert circular boundary to shapely polygon
-        boundary = shapely.Polygon(array)
-
-        return boundary
-    
-    def pads_hit(self,
-                 params: Parameters):
-        """
-        """
-        boundary = self.transverse_boundary()
-        pads_hit = {key: pad for key, pad in params.pads.items()
-                    if boundary.intersects(pad) or boundary.contains(pad)}
-        
-        return pads_hit
     
     def find_pads_hit(self,
                       params: Parameters):
         """
         """
-        results = {}
-        trace: np.ndarray = np.zeros(NUM_TB)
+
+        #No diffusion
         if params.detector.diffusion == (0, 0):
-            #No diffusion
-            index: tuple[int, int] | None = position_to_index(params,
-                                                              self.center)
-            if index is None:
-                return results
-            
-            pad: int = params.pad_map[index[0], index[1]]
-            # Ensure electron hits pad plane and hits a non-beam pad
-            if pad != -1 and pad not in BEAM_PADS:
-                trace[math.floor(self.time)] = self.electrons
-                results[pad] = trace
-                return results
+            return self.do_point(params)
     
         elif params.detector.diffusion[0] != 0:
             # At least transverse
-            5
+            return self.do_transverse(params)
+            #do_longitudinal()
 
         elif params.detector.diffusion[1] != 0:
             # only lateral
+            #do_longitudinal()
             5
     
-        return 0
+    def do_point(self,
+                 params: Parameters):
+        """
+        Transports all electrons created at a point in a simulated particle's
+        track straight to the pad plane, i.e. there is no diffusion.
+
+        Parameters
+        ----------
+        params: Parameters
+            All parameters for simulation.
+        
+        Returns
+        -------
+        pads_hit: dict[int: np.ndarray(int)]
+            Dictionary where key is the pad number of the hit pad
+            and the value is a 1xNUM_TB array giving the number of electrons
+            detected in time bucket.
+        """
+        pads_hit = {}
+
+        # Find pad number of hit pad, if it exists
+        index: tuple[int, int] | None = position_to_index(params,
+                                                              self.center)
+        if index is None:
+            return pads_hit
+        pad: int = params.pad_map[index[0], index[1]]
+
+        # Ensure electron hits pad plane and hits a non-beam pad
+        if pad != -1 and pad not in BEAM_PADS:
+            trace: np.ndarray = np.zeros(NUM_TB)
+            trace[math.floor(self.time)] = self.electrons
+            pads_hit[pad] = trace
+
+        return pads_hit
     
-    def do_transverse(self):
+    def do_transverse(self,
+                      params: Parameters):
         """
+        Transports all electrons created at a point in a simulated particle's
+        track to the pad plane with transverse diffusion. This is done by
+        creating a square mesh roughly centered on the point where the electrons are
+        created. The mesh extends from -3 sigma to 3 sigma in both the 
+        x and y directions. The size of one pixel is the mesh is controlled 
+        by PIXEL_SIZE at the top of this file. Each pixel of the mesh has a 
+        number of electrons in it calculated from the bivariate normal
+        distribution PDF.
+
+        Parameters
+        ----------
+        params: Parameters
+            All parameters for simulation.
+        
+        Returns
+        -------
+        pads_hit: dict[int: np.ndarray(int)]
+            Dictionary where key is the pad number of the hit pad
+            and the value is a 1xNUM_TB array giving the number of electrons
+            detected in time bucket.
         """
-        results = {}
+        pads_hit = {}
 
-        pixel_centerx: float = self.center[0]
-        pixel_centery: float = self.center[1]
-        distance: float = 0
+        mesh_centerx: float = self.center[0]
+        mesh_centery: float = self.center[1]
 
+        # Number of pixels along the x and y axes of the mesh
         steps: float = int(np.ceil((2 * 3 * self.sigma_t) / PIXEL_SIZE)) + 1
-        xlims = (pixel_centerx - 3 * self.sigma_t, pixel_centerx  + 3 * self.sigma_t)
-        ylims = (pixel_centery - 3 * self.sigma_t, pixel_centery  + 3 * self.sigma_t)
-        xx, yy = np.meshgrid(np.linspace(*xlims, steps), np.linspace(*ylims, steps))
-        points = np.stack((xx, yy), axis=-1)
+
+        # Diffusion is smaller than a pixel, so treat it as a point
+        if steps < 1:
+            return self.do_point(params)
+
+        # Create mesh and calculate number of electrons in each pixel
+        xlims = (mesh_centerx - 3 * self.sigma_t, mesh_centerx + 3 * self.sigma_t)
+        ylims = (mesh_centery - 3 * self.sigma_t, mesh_centery + 3 * self.sigma_t)
+        xmesh, ymesh = np.meshgrid(np.linspace(*xlims, steps), np.linspace(*ylims, steps))
+        points = np.stack((xmesh, ymesh), axis=-1)
         pdf = scipy.stats.multivariate_normal.pdf(points,
-                                                  mean=[pixel_centerx, pixel_centery],
+                                                  mean=[mesh_centerx, mesh_centery],
                                                   cov=self.sigma_t**2)
         pdf *= (PIXEL_SIZE ** 2) * self.electrons
-        pdf = pdf.astype(int)
+        pdf = pdf.astype(int).ravel()
 
-        for key, pad in self.pads.items():
-            pads_e = [pdf.ravel()[idx] for idx, point in 
-                       enumerate(np.column_stack((xx.ravel(), yy.ravel())))
-                       if pad.contains(shapely.Point(point[0], point[1]))]
-                       #and dist(self.center, point) > 3 * self.sigma_t]
-            results[key] = {'electrons': [np.sum(pads_e)], 'time': [self.time]}
-        
-        return results
+        for idx, pixel in enumerate(np.column_stack((xmesh.ravel(), ymesh.ravel()))):
+            # Find pad number of hit pad, if it exists
+            index: tuple[int, int] | None = position_to_index(params,
+                                                              pixel)
+            if index is None:
+                continue
+            pad: int = params.pad_map[index[0], index[1]]
 
-    
+            # Ensure electron hits pad plane and hits a non-beam pad
+            if pad != -1 and pad not in BEAM_PADS:
+                trace: np.ndarray = np.zeros(NUM_TB)
+                trace[math.floor(self.time)] = pdf[idx]
+
+                if pad not in pads_hit:
+                    pads_hit[pad] = trace
+
+                else:
+                    pads_hit[pad] += trace
+
+        return pads_hit
+
     def do_longitudinal(self,
                         results: dict[dict]):
         """

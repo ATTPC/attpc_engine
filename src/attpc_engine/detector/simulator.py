@@ -23,12 +23,14 @@ def get_response(params: Parameters):
     """ 
     response = np.zeros(NUM_TB)
     for tb in range(NUM_TB):
-        c1 = 1000   # FIX THISSS
+        c1 = 4095 * E_CHARGE / params.electronics.amp_gain / 1e-15 # Should be 4096 or 4095?
         c2 = tb / (params.electronics.shaping_time *
                    params.electronics.clock_freq * 0.001)
-        response[tb] = int(c1 * math.exp(-3 * c2) * (c2 ** 3) *
-                           math.sin(c2))
-        
+        response[tb] = c1 * math.exp(-3 * c2) * (c2 ** 3) * math.sin(c2)
+
+    # Cannot have negative ADC values
+    response[response < 0] = 0
+
     return response
 
 class SimEvent:
@@ -41,7 +43,7 @@ class SimEvent:
 
     Attributes
     ----------
-    data: np.ndarray
+    kine: np.ndarray
         Nx4 array of four vectors of all N nuclei in the simulated event. From first 
         to last column are px, py, pz, E.
     distance: float
@@ -53,28 +55,31 @@ class SimEvent:
         Nx1 array of mass numbers of all nuclei from reaction and decasy in the pipeline.
     nuclei: list[SimParticle]
         Instance of SimParticle for each nuclei in the exit channel of the pipeline.
+    data: np.ndarray
+        AT-TPC data for the simulated event.
     """
     def __init__(
         self,
         params: Parameters,
-        data: np.ndarray,
+        kine: np.ndarray,
         distance: float,
         proton_numbers: np.ndarray,
         mass_numbers: np.ndarray
     ):
-        self.data = data
+        self.kine = kine
         self.distance = distance
         self.nuclei: list[SimParticle] = []
 
         # Only simulate the nuclei in the exit channel
         counter = 2
-        while counter < data.shape[0]:
-            self.nuclei.append(SimParticle(params, data[counter], distance,
+        while counter < kine.shape[0]:
+            self.nuclei.append(SimParticle(params, kine[counter], distance,
                                            proton_numbers[counter], mass_numbers[counter]))
             counter += 3
-        self.nuclei.append(SimParticle(params, data[counter - 2], distance,
+        self.nuclei.append(SimParticle(params, kine[counter - 2], distance,
                                        proton_numbers[counter - 2], mass_numbers[counter - 2]))
-        self.digitize(params)
+        
+        self.data = self.digitize(params)
         
     def digitize(self,
                  params: Parameters):
@@ -85,17 +90,26 @@ class SimEvent:
         for particle in self.nuclei:
             pads_hit = merge_dicts(pads_hit, particle.hits)
         
+        # Cannot digitize event where no pads are hit
+        if not bool(pads_hit):
+            return None
+        
         # Response function of GET electronics
         response: np.ndarray = get_response(params)
 
         # Make AT-TPC traces
-        data = np.full((len(pads_hit), TRACE_SIZE), -1)
+        data = np.zeros((len(pads_hit), TRACE_SIZE))
         for idx in enumerate(pads_hit.items()):
             # Convolve electrons with response function
             signal = np.convolve(idx[1][1],
                                  response,
                                  mode='full').astype(int)
-            signal = signal[:512]
+            
+            # Convolution cannot extend past the number of time buckets
+            signal = signal[:NUM_TB]
+
+            # Set saturated pads to max ADC
+            signal[signal > 4095] = 4095
 
             # Combine hardware ID with signal for complete AT-TPC trace
             trace = np.concatenate((params.elec_map[idx[1][0]],
@@ -317,23 +331,6 @@ def merge_dicts(old: dict,
                   for key in set(old) | set(new)}  
         return combined
 
-def write_data(params: Parameters,
-               event: SimEvent,
-               output_path):
-    """
-    """
-    # Find all pads hit in one simulated event
-    pads_hit = {}
-    for particle in event.nuclei:
-        pads_hit = merge_dicts(pads_hit, particle.hits)
-
-    # Make AT-TPC traces
-    data = np.array()
-    for pad, trace in pads_hit.items():
-        5
-
-    print(pads_hit.keys())
-
 def run_simulation(params: Parameters,
                    input_path: str,
                    output_path: str
@@ -350,13 +347,28 @@ def run_simulation(params: Parameters,
         Path to HDF5 file containing kinematics
     """
 
+    # Questions: should I  make input group, should i make header, should i include timestamps
+    # Construct output HDF5 file in AT-TPC format
+    output_file = h5.File(output_path, 'w')
+    get_group = output_file.create_group('get')
+    meta_group = output_file.create_group('meta')
+
     input = h5.File(input_path, 'r')
     input_data_group = input['data']
 
+    evt_counter: int = 0
     for event in range(input_data_group.attrs['n_events']):
         sim = SimEvent(params,
                           input_data_group[f'event_{event}'],
                           input_data_group[f'event_{event}'].attrs['distance'],
                           input_data_group.attrs['proton_numbers'],
                           input_data_group.attrs['mass_numbers'])
-        #sim.write_data(params, output_path)
+
+        if sim.data is None:
+            continue
+
+        get_group.create_dataset(f'evt{evt_counter}_data', data=sim.data)
+
+    # Make event range dataset
+    meta_data = np.array([0, 0, evt_counter, 0])
+    meta_group.create_dataset('meta', data=meta_data)

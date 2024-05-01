@@ -17,23 +17,23 @@ from spyral_utils.nuclear.target import TargetData, GasTarget
 import time
 st = time.time()
 
-# Simulate 1 event of 10Be(d,p) with the pipeline
-pipeline = KinematicsPipeline(
-    [Reaction(
-        target=nuclear_map.get_data(1, 2),
-        projectile=nuclear_map.get_data(4, 10),
-        ejectile=nuclear_map.get_data(1, 2),
-        )],
-    [Excitation(0.0)],
-    93.0,
-    )
-run_kinematics_pipeline(pipeline, 1, '/Users/zachserikow/Desktop/yup.hdf5')
+# # Simulate 1 event of 10Be(d,p) with the pipeline
+# pipeline = KinematicsPipeline(
+#     [Reaction(
+#         target=nuclear_map.get_data(1, 2),
+#         projectile=nuclear_map.get_data(4, 10),
+#         ejectile=nuclear_map.get_data(1, 2),
+#         )],
+#     [Excitation(0.0)],
+#     93.0,
+#     )
+# run_kinematics_pipeline(pipeline, 1, '/Users/zachserikow/Desktop/yup.hdf5')
 
 # Specify simulation parameters
 detector = Detector_Params(
     length = 1.0,
     efield = 60000.0,
-    bfield = 3.0,  
+    bfield = 3.0, 
     mpgd_gain = 175000,
     gas_target = GasTarget(
         TargetData(
@@ -42,7 +42,7 @@ detector = Detector_Params(
             thickness = None
             ),
         nuclear_map),
-    diffusion = (0, 0),
+    diffusion = (0.277, 0),
     fano_factor = 0.2,
     w_value = 34.0)
 electronics = Electronics_Params(
@@ -57,7 +57,7 @@ pads = Pad_Params(map = '/Users/zachserikow/Desktop/LUT.txt',
 params = Parameters(detector, electronics, pads)
 run_simulation(params,
                '/Users/zachserikow/Desktop/yup.hdf5',
-               'blah')
+               '/Users/zachserikow/Desktop/run_0100.hdf5')
 
 # get the end time
 et = time.time()
