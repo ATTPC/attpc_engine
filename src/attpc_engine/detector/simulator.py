@@ -16,10 +16,22 @@ from .. constants import MEV_2_JOULE, MEV_2_KG, C, E_CHARGE
 from .. import nuclear_map
 
 NUM_TB: int = 512
-TRACE_SIZE: int = 517
 
 def get_response(params: Parameters):
     """
+    Theoretical response function of GET electronics provided by the 
+    chip manufacturer. See https://doi.org/10.1016/j.nima.2016.09.018.
+
+    Parameters
+    ----------
+    params: Parameters
+        All parameters for simulation.
+    
+    Returns
+    -------
+    np.ndarray
+        Returns 1xNUM_TB array of the response function evaluated
+        at each time bucket
     """ 
     response = np.zeros(NUM_TB)
     for tb in range(NUM_TB):
@@ -64,8 +76,7 @@ class SimEvent:
         kine: np.ndarray,
         distance: float,
         proton_numbers: np.ndarray,
-        mass_numbers: np.ndarray
-    ):
+        mass_numbers: np.ndarray):
         self.kine = kine
         self.distance = distance
         self.nuclei: list[SimParticle] = []
@@ -84,6 +95,21 @@ class SimEvent:
     def digitize(self,
                  params: Parameters):
         """
+        Digitizes the simulated event, converting the number of 
+        electrons detected on each pad to a signal in ADC units. 
+        The hardware ID of each pad is included to make the complete
+        AT-TPC trace.
+
+        Parameters
+        ----------
+        params: Parameters
+            All parameters for simulation.
+
+        Returns
+        -------
+        np.ndarray
+            Returns a Nx(NUM_TB+5) array where each row is the 
+            complete trace of one pad.
         """
         # Find all pads hit in simulated event
         pads_hit = {}
@@ -98,7 +124,7 @@ class SimEvent:
         response: np.ndarray = get_response(params)
 
         # Make AT-TPC traces
-        data = np.zeros((len(pads_hit), TRACE_SIZE))
+        data = np.zeros((len(pads_hit), NUM_TB+5))
         for idx in enumerate(pads_hit.items()):
             # Convolve electrons with response function
             signal = np.convolve(idx[1][1],
@@ -159,8 +185,7 @@ class SimParticle:
             data: np.ndarray,
             distance: float,
             proton_number: int,
-            mass_number: int
-    ):
+            mass_number: int):
         self.data = data
         self.nucleus = nuclear_map.get_data(proton_number, mass_number)
         self.track = self.generate_track(params, distance)
@@ -170,8 +195,7 @@ class SimParticle:
     def generate_track(
             self,
             params: Parameters,
-            distance: float
-    ):
+            distance: float):
         """
         Solve the EoM of the nucleus in the AT-TPC.
 
@@ -185,8 +209,9 @@ class SimParticle:
 
         Returns
         -------
-        scipy.integrate.solve_ivp bunch object
-            Solution to ODE
+        np.ndarray
+            6xN array where each row is a solution to one of the ODEs evaluated at
+            the Nth time step.
         """
         # Find initial state of nucleus. (x, y, z, px, py, pz)
         initial_state: np.ndarray = np.zeros(6)
@@ -227,10 +252,20 @@ class SimParticle:
         return track.y
     
     def generate_electrons(self,
-                           params: Parameters
-    ):
+                           params: Parameters):
         """
         Find the number of electrons made at each point of the nucleus' track.
+
+        Parameters
+        ----------
+        params: Parameters
+            All parameters for simulation.
+
+        Returns
+        -------
+        np.ndarray
+            6xN array where each row is a solution to one of the ODEs evaluated at
+            the Nth time step, or point, of its trajectory.
         """
         # Find energy of nucleus at each point of its track
         momentum: float = np.sqrt(np.sum((self.track[3:] ** 2), axis=0))
@@ -245,25 +280,28 @@ class SimParticle:
         electrons *= 1e6 / params.detector.w_value  # Convert to eV to match units of W-value
 
         # Adjust number of electrons by Fano factor
-        fano_adjusted: list = [normalvariate(point, np.sqrt(params.detector.fano_factor * point))
-                           for point in electrons]
-        fano_adjusted = np.array(fano_adjusted)
+        fano_adjusted = np.array([normalvariate(point, np.sqrt(params.detector.fano_factor *
+                                                               point))
+                                                               for point in electrons])
         
         # Must have an integer amount of electrons at each point
         fano_adjusted = fano_adjusted.astype(int)
 
         # Remove points in trajectory that create less than 1 electron
-        mask = fano_adjusted > 1.0
+        mask = fano_adjusted >= 1
         self.track = self.track[:, mask]
         fano_adjusted = fano_adjusted[mask]
     
         return fano_adjusted
     
     def z_to_tb(self,
-                   params: Parameters):
+                params: Parameters):
         """
         Converts the z-coordinate of each point in the track
-        from physical space (m) to time (time buckets).
+        from physical space (m) to time (time buckets). Note that 
+        the time buckets returned are floats and will be rounded
+        down to their correct bins when the electrons at each 
+        point are transported to the pad plane.
 
         Parameters
         ----------
@@ -272,7 +310,7 @@ class SimParticle:
 
         Returns
         -------
-        np.ndarray
+        np.ndarray[floats]
             1xN array of time buckets for N points in the track
             that produce one or more electrons.
         """
@@ -282,18 +320,30 @@ class SimParticle:
         dv: float = params.calculate_drift_velocity()
         
         # Convert from m to time buckets
-        zpos = np.abs(zpos - params.detector.length)  # We want z relative to the micromegas
+        zpos = np.abs(zpos - params.detector.length)  # z relative to the micromegas
         zpos /= dv
         zpos += params.electronics.micromegas_edge
 
         return zpos
      
     def generate_hits(self,
-                      params: Parameters
-    ):
+                      params: Parameters):
         """
+        Finds the pads hit by the electrons transported from each point
+        of the nucleus' trajectory to the pad plane.
+
+        Parameters
+        ----------
+        params: Parameters
+            All parameters for simulation.
+
+        Returns
+        -------
+        dict[int: np.ndarray[int]]
+            Dictionary of pads hit by transporting the liberated electrons.
+            The key is the pad number and the value is a 1xNUM_TB array 
+            of the number of electrons detected at each time bucket.
         """
-        # Store results
         results = {}
         
         # Apply gain factor from micropattern gas detectors
@@ -303,14 +353,14 @@ class SimParticle:
         point_tb: np.ndarray = self.z_to_tb(params)
 
         for idx, tb in enumerate(point_tb):
-            point = diffuse_point(params,
+            point = transport_point(params,
                                   (self.track[0][idx],
                                    self.track[1][idx]),
                                   electrons[idx],
                                   tb)
             intermediate: dict[int: np.ndarray] = point.pads
             results = merge_dicts(results, intermediate)
-        
+
         return results
 
 def merge_dicts(old: dict,

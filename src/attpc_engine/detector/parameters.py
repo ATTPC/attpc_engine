@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from spyral_utils.nuclear.target import GasTarget
 
 import numpy as np
-import shapely
 
 @dataclass
 class Detector_Params:

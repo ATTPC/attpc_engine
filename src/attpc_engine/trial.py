@@ -42,19 +42,23 @@ detector = Detector_Params(
             thickness = None
             ),
         nuclear_map),
-    diffusion = (0.277, 0),
+    diffusion = (0, 0),
     fano_factor = 0.2,
     w_value = 34.0)
+
 electronics = Electronics_Params(
     clock_freq = 3.125,
     amp_gain = 900,
     shaping_time = 1000,
     micromegas_edge = 66,
     windows_edge = 400)
+
 pads = Pad_Params(map = '/Users/zachserikow/Desktop/LUT.txt',
                   map_params = [-280.0, 279.9, 0.1],
                   electronics = '/Users/zachserikow/Desktop/pad_electronics_legacy.csv')
+
 params = Parameters(detector, electronics, pads)
+
 run_simulation(params,
                '/Users/zachserikow/Desktop/yup.hdf5',
                '/Users/zachserikow/Desktop/run_0100.hdf5')
