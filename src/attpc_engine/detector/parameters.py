@@ -141,9 +141,9 @@ class Parameters:
             returns the pad number at that position.
         """
         map: np.ndarray = np.loadtxt(self.pads.map,
-                                         dtype='int',
-                                         delimiter=',',
-                                         skiprows=0)
+                                     dtype=np.int64,
+                                     delimiter=',',
+                                     skiprows=0)
 
         return map
     

@@ -3,69 +3,74 @@ from attpc_engine.detector.parameters import (
     Detector_Params,
     Electronics_Params,
     Pad_Params,
-    Parameters
-    )
+    Parameters,
+)
 from attpc_engine.kinematics.reaction import Reaction, Decay
 from attpc_engine.kinematics.pipeline import (
     KinematicsPipeline,
     Excitation,
-    run_kinematics_pipeline
-    )
+    run_kinematics_pipeline,
+)
 from attpc_engine import nuclear_map
 from spyral_utils.nuclear.target import TargetData, GasTarget
 
 import time
+
 st = time.time()
 
-# # Simulate 1 event of 10Be(d,p) with the pipeline
+# Simulate 1 event of 10Be(d,p) with the pipeline
 # pipeline = KinematicsPipeline(
-#     [Reaction(
-#         target=nuclear_map.get_data(1, 2),
-#         projectile=nuclear_map.get_data(4, 10),
-#         ejectile=nuclear_map.get_data(1, 2),
-#         )],
+#     [
+#         Reaction(
+#             target=nuclear_map.get_data(1, 2),
+#             projectile=nuclear_map.get_data(4, 10),
+#             ejectile=nuclear_map.get_data(1, 2),
+#         )
+#     ],
 #     [Excitation(0.0)],
 #     93.0,
-#     )
-# run_kinematics_pipeline(pipeline, 1, '/Users/zachserikow/Desktop/yup.hdf5')
+# )
+# run_kinematics_pipeline(pipeline, 1, "/Users/zachserikow/Desktop/yup.hdf5")
 
 # Specify simulation parameters
 detector = Detector_Params(
-    length = 1.0,
-    efield = 60000.0,
-    bfield = 3.0, 
-    mpgd_gain = 175000,
-    gas_target = GasTarget(
-        TargetData(
-            compound = [[1, 2, 2]],
-            pressure = 600,
-            thickness = None
-            ),
-        nuclear_map),
-    diffusion = (0, 0),
-    fano_factor = 0.2,
-    w_value = 34.0)
+    length=1.0,
+    efield=60000.0,
+    bfield=3.0,
+    mpgd_gain=175000,
+    gas_target=GasTarget(
+        TargetData(compound=[[1, 2, 2]], pressure=600, thickness=None), nuclear_map
+    ),
+    diffusion=(0.277, 0.277),
+    fano_factor=0.2,
+    w_value=34.0,
+)
 
 electronics = Electronics_Params(
-    clock_freq = 3.125,
-    amp_gain = 900,
-    shaping_time = 1000,
-    micromegas_edge = 66,
-    windows_edge = 400)
+    clock_freq=3.125,
+    amp_gain=900,
+    shaping_time=1000,
+    micromegas_edge=66,
+    windows_edge=400,
+)
 
-pads = Pad_Params(map = '/Users/zachserikow/Desktop/LUT.txt',
-                  map_params = [-280.0, 279.9, 0.1],
-                  electronics = '/Users/zachserikow/Desktop/pad_electronics_legacy.csv')
+pads = Pad_Params(
+    map="/Users/zachserikow/Desktop/LUT.txt",
+    map_params=[-280.0, 279.9, 0.1],
+    electronics="/Users/zachserikow/Desktop/pad_electronics_legacy.csv",
+)
 
 params = Parameters(detector, electronics, pads)
 
-run_simulation(params,
-               '/Users/zachserikow/Desktop/yup.hdf5',
-               '/Users/zachserikow/Desktop/run_0100.hdf5')
+run_simulation(
+    params,
+    "/Users/zachserikow/Desktop/yup.hdf5",
+    "/Users/zachserikow/Desktop/run_0100.hdf5",
+)
 
 # get the end time
 et = time.time()
 
 # get the execution time
 elapsed_time = et - st
-print('Execution time:', elapsed_time, 'seconds')
+print("Execution time:", elapsed_time, "seconds")

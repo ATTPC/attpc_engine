@@ -4,9 +4,10 @@ import numpy as np
 from spyral_utils.nuclear.target import GasTarget
 from spyral_utils.nuclear import NucleusData
 
-from .. constants import MEV_2_JOULE, MEV_2_KG, C, E_CHARGE
+from ..constants import MEV_2_JOULE, MEV_2_KG, C, E_CHARGE
 
-KE_LIMIT = 1e-6 # 1 eV
+KE_LIMIT = 1e-6  # 1 eV
+
 
 # State = [x, y, z, px, py, pz]
 # Derivative = [vx, vy, vz, ax, ay, az] (returns)
@@ -69,6 +70,7 @@ def equation_of_motion(
 
     return results
 
+
 # These function sigs must match the ODE function
 def stop_condition(
     t: float,
@@ -115,6 +117,7 @@ def stop_condition(
     )  # MeV
     return kinetic_energy - KE_LIMIT
 
+
 def forward_z_bound_condition(
     t: float,
     state: np.ndarray,
@@ -152,6 +155,7 @@ def forward_z_bound_condition(
 
     """
     return state[2] - 1.0
+
 
 # These function sigs must match the ODE function
 def backward_z_bound_condition(
@@ -191,6 +195,7 @@ def backward_z_bound_condition(
 
     """
     return state[2]
+
 
 # These function sigs must match the ODE function
 def rho_bound_condition(
