@@ -3,6 +3,7 @@ from spyral_utils.nuclear.target import GasTarget
 
 import numpy as np
 
+
 @dataclass
 class Detector_Params:
     """
@@ -13,11 +14,11 @@ class Detector_Params:
     length: float (m)
         Length of active volume of detector.
     efield: float (V/m)
-        Magnitude of the electric field. The electric field is 
+        Magnitude of the electric field. The electric field is
         assumed to only have one component in the +z direction
         parallel to the incoming beam.
     bfield: float (T)
-        Magnitude of the magnetic field. The magnetic field is 
+        Magnitude of the magnetic field. The magnetic field is
         assumed to only have one component in the +z direction
         parallel to the incoming beam.
     mpgd_gain: int (unitless)
@@ -42,14 +43,16 @@ class Detector_Params:
         y1, x2, y2, ...,xn, yn) where x and y are the
         respective coordinates of the nth vertex given in mm.
     """
+
     length: float
-    efield: float 
-    bfield: float 
+    efield: float
+    bfield: float
     mpgd_gain: int
     gas_target: GasTarget
-    diffusion: tuple[float,float]
+    diffusion: tuple[float, float]
     fano_factor: float
     w_value: float
+
 
 @dataclass
 class Electronics_Params:
@@ -69,16 +72,18 @@ class Electronics_Params:
     windows_edge: int (timebucket)
         The windows edge of the detector.
     """
+
     clock_freq: float
     amp_gain: int
     shaping_time: int
     micromegas_edge: int
     windows_edge: int
 
+
 @dataclass
 class Pad_Params:
     """
-    Data class containing parameters related to the 
+    Data class containing parameters related to the
     pads.
 
     Attributes
@@ -89,9 +94,11 @@ class Pad_Params:
         y1, x2, y2, ...,xn, yn) where x and y are the
         respective coordinates of the nth vertex given in mm.
     """
+
     map: str
     map_params: tuple[float, float, float]
     electronics: str
+
 
 class Parameters:
     """
@@ -105,11 +112,12 @@ class Parameters:
     electronics: Electronics_Params
         Electronics parameters
     """
+
     def __init__(
-            self,
-            detector_params: Detector_Params,
-            electronics_params: Electronics_Params,
-            pad_params: Pad_Params
+        self,
+        detector_params: Detector_Params,
+        electronics_params: Electronics_Params,
+        pad_params: Pad_Params,
     ):
         self.detector = detector_params
         self.electronics = electronics_params
@@ -126,10 +134,11 @@ class Parameters:
         float
             Electron drift velocity in m / time bucket
         """
-        dv: float = self.detector.length / (self.electronics.windows_edge -
-                                            self.electronics.micromegas_edge)
-        return dv 
-        
+        dv: float = self.detector.length / (
+            self.electronics.windows_edge - self.electronics.micromegas_edge
+        )
+        return dv
+
     def load_pad_map(self):
         """
         Loads pad map.
@@ -140,27 +149,29 @@ class Parameters:
             Array indexed by physical position that
             returns the pad number at that position.
         """
-        map: np.ndarray = np.loadtxt(self.pads.map,
-                                     dtype=np.int64,
-                                     delimiter=',',
-                                     skiprows=0)
+        map: np.ndarray = np.loadtxt(
+            self.pads.map, dtype=np.int64, delimiter=",", skiprows=0
+        )
 
         return map
-    
+
     def pad_to_hardwareid(self):
-        """
-        """
+        """ """
         map = {}
         with open(self.pads.electronics, "r") as elecfile:
             elecfile.readline()
             lines = elecfile.readlines()
             for line in lines:
                 entries = line.split(",")
-                hardware = np.array((int(entries[0]),
-                                     int(entries[1]),
-                                     int(entries[2]),
-                                     int(entries[3]),
-                                     int(entries[4])))
+                hardware = np.array(
+                    (
+                        int(entries[0]),
+                        int(entries[1]),
+                        int(entries[2]),
+                        int(entries[3]),
+                        int(entries[4]),
+                    )
+                )
                 map[int(entries[4])] = hardware
 
         return map
