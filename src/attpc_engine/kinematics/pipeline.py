@@ -223,7 +223,7 @@ class KinematicsPipeline:
         self.result[3] = np.array(
             [rxn_result[3].px, rxn_result[3].py, rxn_result[3].pz, rxn_result[3].E]
         )
-        
+
         # Do all the decay steps
         prev_resid = rxn_result[3]
         for idx, decay in enumerate(self.decays):
