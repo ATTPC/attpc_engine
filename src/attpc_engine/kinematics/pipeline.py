@@ -201,6 +201,7 @@ class KinematicsPipeline:
                     np.array([distance]),
                 )
             )
+            projectile_energy = projectile_energy[0]  # Convert 1x1 array to float
         resid_ex = normalvariate(
             self.excitations[0].centroid, self.excitations[0].sigma()
         )

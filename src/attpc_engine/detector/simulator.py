@@ -2,7 +2,7 @@ import numpy as np
 import h5py as h5
 import math
 
-from .parameters import Detector_Params, Electronics_Params, Pad_Params, Parameters
+from .parameters import Config
 from .solver import (
     equation_of_motion,
     stop_condition,
@@ -11,14 +11,15 @@ from .solver import (
     rho_bound_condition,
 )
 from scipy.integrate import solve_ivp
-from .transporter import TransportPoint, NUM_TB
+from scipy.signal import fftconvolve
+from .transporter import make_traces, transport_track
 from spyral_utils.nuclear.target import GasTarget
 from random import normalvariate
-from ..constants import MEV_2_JOULE, MEV_2_KG, C, E_CHARGE
+from ..constants import NUM_TB, E_CHARGE
 from .. import nuclear_map
 
 
-def get_response(params: Parameters):
+def get_response(config: Config) -> np.ndarray:
     """
     Theoretical response function of GET electronics provided by the
     chip manufacturer. See https://doi.org/10.1016/j.nima.2016.09.018.
@@ -37,10 +38,10 @@ def get_response(params: Parameters):
     response = np.zeros(NUM_TB)
     for tb in range(NUM_TB):
         c1 = (
-            4095 * E_CHARGE / params.electronics.amp_gain / 1e-15
+            4095 * E_CHARGE / config.electronics.amp_gain / 1e-15
         )  # Should be 4096 or 4095?
         c2 = tb / (
-            params.electronics.shaping_time * params.electronics.clock_freq * 0.001
+            config.electronics.shaping_time * config.electronics.clock_freq * 0.001
         )
         response[tb] = c1 * math.exp(-3 * c2) * (c2**3) * math.sin(c2)
 
@@ -78,7 +79,7 @@ class SimEvent:
 
     def __init__(
         self,
-        params: Parameters,
+        config: Config,
         kine: np.ndarray,
         distance: float,
         proton_numbers: np.ndarray,
@@ -93,7 +94,7 @@ class SimEvent:
         while counter < kine.shape[0]:
             self.nuclei.append(
                 SimParticle(
-                    params,
+                    config,
                     kine[counter],
                     distance,
                     proton_numbers[counter],
@@ -103,7 +104,7 @@ class SimEvent:
             counter += 3
         self.nuclei.append(
             SimParticle(
-                params,
+                config,
                 kine[counter - 2],
                 distance,
                 proton_numbers[counter - 2],
@@ -111,9 +112,9 @@ class SimEvent:
             )
         )
 
-        self.data = self.digitize(params)
+        self.data = self.digitize(config)
 
-    def digitize(self, params: Parameters):
+    def digitize(self, config: Config) -> np.ndarray:
         """
         Digitizes the simulated event, converting the number of
         electrons detected on each pad to a signal in ADC units.
@@ -131,35 +132,28 @@ class SimEvent:
             Returns a Nx(NUM_TB+5) array where each row is the
             complete trace of one pad.
         """
-        # Find all pads hit in simulated event
-        pads_hit = {}
-        for particle in self.nuclei:
-            pads_hit = merge_dicts(pads_hit, particle.hits)
+        # Sum traces from all particles
+        traces: np.ndarray = self.nuclei[0].hits
+        for idx in range(1, len(self.nuclei)):
+            traces[:, 5:] += self.nuclei[idx].hits[:, 5:]
+
+        # Remove traces without any hits
+        mask = traces[:, NUM_TB + 5] > 0
+        traces = traces[mask, : (NUM_TB + 5)]
 
         # Cannot digitize event where no pads are hit
-        if not bool(pads_hit):
+        if traces.size == 0:
             return None
 
-        # Response function of GET electronics
-        response: np.ndarray = get_response(params)
+        # Convolve traces with response function to get digitized traces
+        response: np.ndarray = np.tile(get_response(config), (traces.shape[0], 1))
+        digi_traces = fftconvolve(traces[:, 5:], response, mode="full", axes=(1,))
+        traces[:, 5:] = digi_traces[:, :NUM_TB]
 
-        # Make AT-TPC traces
-        data = np.zeros((len(pads_hit), NUM_TB + 5))
-        for idx in enumerate(pads_hit.items()):
-            # Convolve electrons with response function
-            signal = np.convolve(idx[1][1], response, mode="full").astype(int)
+        # Set saturated pads to max ADC
+        traces[:, 5:][traces[:, 5:] > 4095] = 4095
 
-            # Convolution cannot extend past the number of time buckets
-            signal = signal[:NUM_TB]
-
-            # Set saturated pads to max ADC
-            signal[signal > 4095] = 4095
-
-            # Combine hardware ID with signal for complete AT-TPC trace
-            trace = np.concatenate((params.elec_map[idx[1][0]], signal), axis=None)
-            data[idx[0]] = trace
-
-        return data
+        return traces
 
 
 class SimParticle:
@@ -199,7 +193,7 @@ class SimParticle:
 
     def __init__(
         self,
-        params: Parameters,
+        config: Config,
         data: np.ndarray,
         distance: float,
         proton_number: int,
@@ -207,11 +201,10 @@ class SimParticle:
     ):
         self.data = data
         self.nucleus = nuclear_map.get_data(proton_number, mass_number)
-        self.track = self.generate_track(params, distance)
-        self.electrons = self.generate_electrons(params)
-        self.hits = self.generate_hits(params)
+        self.distance = distance
+        self.hits = self.generate_hits(config)
 
-    def generate_track(self, params: Parameters, distance: float):
+    def generate_track(self, config: Config, distance: float) -> np.ndarray:
         """
         Solve the EoM of the nucleus in the AT-TPC.
 
@@ -232,7 +225,7 @@ class SimParticle:
         # Find initial state of nucleus. (x, y, z, px, py, pz)
         initial_state: np.ndarray = np.zeros(6)
         initial_state[2] = distance  # m
-        initial_state[3:] = self.data[:3] * MEV_2_KG * C  # kg * m/s
+        initial_state[3:] = self.data[:3] / self.nucleus.mass  # unitless (gamma * beta)
 
         # Set ODE stop conditions. See SciPy solve_ivp docs
         stop_condition.terminal = True
@@ -244,16 +237,14 @@ class SimParticle:
         rho_bound_condition.terminal = True
         rho_bound_condition.direction = 1.0
 
-        # Time steps to solve ODE at. Assume maximum time for nucleus to
-        # cross detector is the time taken travelling at 0.01 * C. Evaluate
-        # the time every 1e-11 sec.
-        time_steps = np.linspace(0, 3.34e-7, 33401)
+        # Time steps to solve ODE at. Each step is 1e-10 s
+        time_steps = np.linspace(0, 10e-7, 10001)
 
         track = solve_ivp(
             equation_of_motion,
             (0.0, 1.0),  # Set upper time limit to 1 sec. This should never be reached
             initial_state,
-            method="RK45",
+            method="Radau",
             events=[
                 stop_condition,
                 forward_z_bound_condition,
@@ -262,16 +253,16 @@ class SimParticle:
             ],
             t_eval=time_steps,
             args=(
-                params.detector.bfield,
-                params.detector.efield,
-                params.detector.gas_target,
+                config.detector.bfield * -1.0,
+                config.detector.efield * -1.0,
+                config.detector.gas_target,
                 self.nucleus,
             ),
         )
 
         return track.y
 
-    def generate_electrons(self, params: Parameters):
+    def generate_electrons(self, config: Config, track: np.ndarray) -> np.ndarray:
         """
         Find the number of electrons made at each point of the nucleus' track.
 
@@ -279,46 +270,46 @@ class SimParticle:
         ----------
         params: Parameters
             All parameters for simulation.
+        track: np.ndarray
+            6xN array where each row is a solution to one of the ODEs evaluated at
+            the Nth time step.
 
         Returns
         -------
-        np.ndarray
-            6xN array where each row is a solution to one of the ODEs evaluated at
-            the Nth time step, or point, of its trajectory.
+        tuple[np.ndarray, np.ndarray]
+            Element 0 is the 6xN track array and element 1 is a 1xN array
+            of electrons created at each point in the track.
         """
         # Find energy of nucleus at each point of its track
-        momentum: float = np.sqrt(np.sum((self.track[3:] ** 2), axis=0))
-        mass_kg = self.nucleus.mass * MEV_2_KG
-        p_m = momentum / mass_kg
-        speed = p_m / np.sqrt((1.0 + (p_m * 1.0 / C) ** 2.0))
-        energy = self.nucleus.mass * (-1 + 1 / np.sqrt(1 - (speed / C) ** 2))  # in MeV
+        gv = np.linalg.norm(track[3:], axis=0)
+        beta = np.sqrt(gv**2.0 / (1.0 + gv**2.0))
+        gamma = gv / beta
+        energy = self.nucleus.mass * (gamma - 1.0)  # MeV
 
         # Find number of electrons created at each point of its track
         electrons = np.zeros_like(energy)
         electrons[1:] = abs(np.diff(energy))  # Magnitude of energy lost
         electrons *= (
-            1e6 / params.detector.w_value
+            1e6 / config.detector.w_value
         )  # Convert to eV to match units of W-value
 
-        # Adjust number of electrons by Fano factor
-        fano_adjusted = np.array(
+        # Adjust number of electrons by Fano factor, can only have integer amount of electrons
+        electrons = np.array(
             [
-                normalvariate(point, np.sqrt(params.detector.fano_factor * point))
+                normalvariate(point, np.sqrt(config.detector.fano_factor * point))
                 for point in electrons
-            ]
+            ],
+            dtype=np.int64,
         )
 
-        # Must have an integer amount of electrons at each point
-        fano_adjusted = fano_adjusted.astype(np.int64)
-
         # Remove points in trajectory that create less than 1 electron
-        mask = fano_adjusted >= 1
-        self.track = self.track[:, mask]
-        fano_adjusted = fano_adjusted[mask]
+        mask = electrons >= 1
+        track = track[:, mask]
+        electrons = electrons[mask]
 
-        return fano_adjusted
+        return track, electrons
 
-    def z_to_tb(self, params: Parameters):
+    def z_to_tb(self, config: Config, track) -> np.ndarray:
         """
         Converts the z-coordinate of each point in the track
         from physical space (m) to time (time buckets). Note that
@@ -330,6 +321,9 @@ class SimParticle:
         ----------
         params: Parameters
             All parameters for simulation.
+        track: np.ndarray
+            6xN array where each row is a solution to one of the ODEs evaluated at
+            the Nth time step.
 
         Returns
         -------
@@ -338,18 +332,18 @@ class SimParticle:
             that produce one or more electrons.
         """
         # Z coordinates of points in track
-        zpos: np.ndarray = self.track[2]
+        zpos: np.ndarray = track[2]
 
-        dv: float = params.calculate_drift_velocity()
+        dv: float = config.calculate_drift_velocity()
 
         # Convert from m to time buckets
-        zpos = np.abs(zpos - params.detector.length)  # z relative to the micromegas
+        zpos = np.abs(zpos - config.detector.length)  # z relative to the micromegas
         zpos /= dv
-        zpos += params.electronics.micromegas_edge
+        zpos += config.electronics.micromegas_edge
 
         return zpos
 
-    def generate_hits(self, params: Parameters):
+    def generate_hits(self, config: Config) -> dict[int : np.ndarray]:
         """
         Finds the pads hit by the electrons transported from each point
         of the nucleus' trajectory to the pad plane.
@@ -366,76 +360,35 @@ class SimParticle:
             The key is the pad number and the value is a 1xNUM_TB array
             of the number of electrons detected at each time bucket.
         """
-        results = {}
+        # Generate nucleus' track and calculate the electrons made at each point
+        track: np.ndarray = self.generate_track(config, self.distance)
+        track, electrons = self.generate_electrons(config, track)
 
         # Apply gain factor from micropattern gas detectors
-        electrons: np.ndarray = self.electrons * params.detector.mpgd_gain
+        electrons *= config.detector.mpgd_gain
 
-        # Find time bucket of each point in track
-        point_tb: np.ndarray = self.z_to_tb(params)
+        # Convert z position of trajectory to time buckets
+        track[2] = self.z_to_tb(config, track)
 
-        for idx, tb in enumerate(point_tb):
-            point = TransportPoint(
-                params.pad_map,
-                params.pads.map_params,
-                params.detector.diffusion,
-                params.detector.efield,
-                params.calculate_drift_velocity(),
-                (self.track[0][idx], self.track[1][idx]),
-                electrons[idx],
-                tb,
-            )
-            intermediate: dict[int : np.ndarray] = point.pads_hit
-            results = merge_dicts(results, intermediate)
+        traces: np.ndarray = make_traces(
+            config.hardwareid_map, len(config.hardwareid_map)
+        )
 
-        return results
+        traces = transport_track(
+            config.pad_map,
+            config.pads.map_params,
+            config.detector.diffusion,
+            config.detector.efield,
+            config.calculate_drift_velocity(),
+            track,
+            electrons,
+            traces,
+        )
 
-
-def merge_dicts(dict1: dict, dict2: dict):
-    """
-    Merges two input Python dictionaries or Numba typed dictionaries or
-    any combination thereof. A Python dictionary is always returned despite
-    whatever is input. The input dictionaries must either be empty or have
-    the signature {int: np.ndarray(1xNUM_TB)}. Specifically, if the
-    two dictionaries each have an array for the same key, those arrays will
-    be added together in the merged dictionary. Keys and arrays that are unique
-    to each dictionary will be placed in the merged dictionary as well.
-
-    Parameters
-    ----------
-    dict1: dict | numba.typed.dict
-        First dictionary to be merged with the second.
-    dict2: dict | numba.typed.dict
-        Second dictionary to be merged with the first.
-
-    Returns
-    -------
-    dict[(empty)] or dict[int: np.ndarray]
-    """
-    # Both dictionaries are empty, return an empty dictionary
-    if not bool(dict1) and not bool(dict2):
-        return {}
-
-    # First dictionary is empty, return second dictionary
-    elif not bool(dict1):
-        return dict2
-
-    # Second dictionary is empty, return first dictionary
-    elif not bool(dict2):
-        return dict1
-
-    # Combine two dictionaries
-    else:
-        converter = lambda x: np.zeros(NUM_TB) if x is None else x
-        combined = {
-            key: converter(dict1.get(key)) + converter(dict2.get(key))
-            for key in set(dict1) | set(dict2)
-        }
-
-        return combined
+        return traces
 
 
-def run_simulation(params: Parameters, input_path: str, output_path: str):
+def run_simulation(config: Config, input_path: str, output_path: str):
     """
     Runs the AT-TPC simulation with the input parameters on the specified
     kinematic data hdf5 file generated by the kinematic pipeline.
@@ -460,7 +413,7 @@ def run_simulation(params: Parameters, input_path: str, output_path: str):
     evt_counter: int = 0
     for event in range(input_data_group.attrs["n_events"]):
         sim = SimEvent(
-            params,
+            config,
             input_data_group[f"event_{event}"],
             input_data_group[f"event_{event}"].attrs["distance"],
             input_data_group.attrs["proton_numbers"],

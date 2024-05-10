@@ -1,11 +1,13 @@
+import numpy as np
+
 from dataclasses import dataclass
 from spyral_utils.nuclear.target import GasTarget
-
-import numpy as np
+from numba import int64
+from numba.typed import Dict
 
 
 @dataclass
-class Detector_Params:
+class DetectorParams:
     """
     Data class containing all detector parameters for simulation.
 
@@ -26,8 +28,6 @@ class Detector_Params:
         a combination of a micromegas and THGEM.
     gas_target: GasTarget
         Target gas in the AT-TPC.
-    drift_velocity: float (cm/us)
-        Electron drift velocity in target gas.
     diffusion: tuple(float, float) (V,V)
         Diffusion coefficients of electrons in the target gas. The
         first element is the transverse coefficient and the second
@@ -37,11 +37,6 @@ class Detector_Params:
     w_value: float (eV)
         W-value of gas. This is the average energy an ionizing
         loses to create one electron-ion pair in the gas.
-    pad_vertices: str
-        Path to location of file containing pads and their
-        vertices. Each row is formatted as (pad number, x1,
-        y1, x2, y2, ...,xn, yn) where x and y are the
-        respective coordinates of the nth vertex given in mm.
     """
 
     length: float
@@ -55,7 +50,7 @@ class Detector_Params:
 
 
 @dataclass
-class Electronics_Params:
+class ElectronicsParams:
     """
     Data class containing all electronics parameters for simulation.
 
@@ -81,10 +76,9 @@ class Electronics_Params:
 
 
 @dataclass
-class Pad_Params:
+class PadParams:
     """
-    Data class containing parameters related to the
-    pads.
+    Data class containing parameters related to the pads.
 
     Attributes
     ----------
@@ -93,6 +87,15 @@ class Pad_Params:
         vertices. Each row is formatted as (pad number, x1,
         y1, x2, y2, ...,xn, yn) where x and y are the
         respective coordinates of the nth vertex given in mm.
+    map: str
+        Path to pad map LUT.
+    map_params: tuple[float, float, float]
+        LUT parameters. First element is the low edge of the
+        grid, second element is the high edge, and the third
+        element is the size of each pixel in the map.
+    electronics: str
+        Path to electronics file containing the hardware ID
+        for each pad.
     """
 
     map: str
@@ -100,32 +103,43 @@ class Pad_Params:
     electronics: str
 
 
-class Parameters:
+class Config:
     """
     A wrapper class containing all the input detector and electronics parameters
     for the simulation.
 
     Attributes
     ----------
-    detector: Detector_Params
+    detector: DetectorParams
         Detector parameters
-    electronics: Electronics_Params
+    electronics: ElectronicsParams
         Electronics parameters
+    pads: PadParams
+        Pad parameters
+
+    Methods
+    -------
+    calculate_drift_velocity()
+        Calculates the electron drift velocity.
+    load_pad_map()
+        Loads pad map LUT.
+    pad_to_hardwareid()
+        Makes a mapping from pad number to hardware ID.
     """
 
     def __init__(
         self,
-        detector_params: Detector_Params,
-        electronics_params: Electronics_Params,
-        pad_params: Pad_Params,
+        detector_params: DetectorParams,
+        electronics_params: ElectronicsParams,
+        pad_params: PadParams,
     ):
         self.detector = detector_params
         self.electronics = electronics_params
         self.pads = pad_params
         self.pad_map = self.load_pad_map()
-        self.elec_map = self.pad_to_hardwareid()
+        self.hardwareid_map = self.pad_to_hardwareid()
 
-    def calculate_drift_velocity(self):
+    def calculate_drift_velocity(self) -> float:
         """
         Calculate drift velocity of electrons in the gas.
 
@@ -139,9 +153,9 @@ class Parameters:
         )
         return dv
 
-    def load_pad_map(self):
+    def load_pad_map(self) -> np.ndarray:
         """
-        Loads pad map.
+        Loads pad map LUT as an array.
 
         Returns
         -------
@@ -155,9 +169,17 @@ class Parameters:
 
         return map
 
-    def pad_to_hardwareid(self):
-        """ """
-        map = {}
+    def pad_to_hardwareid(self) -> dict[int : np.ndarray]:
+        """
+        Creates a dictionary mapping each pad number to its hardware ID.
+
+        Returns
+        -------
+        numba.typed.Dict[int: np.ndarray]
+            Numba typed dictionary mapping pad number to hardware ID. The hardware ID
+            is a 1x5 array with signature (CoBo, AsAd, Aget, Aget channel, Pad).
+        """
+        map = Dict.empty(int64, int64[:])
         with open(self.pads.electronics, "r") as elecfile:
             elecfile.readline()
             lines = elecfile.readlines()

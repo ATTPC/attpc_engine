@@ -1,13 +1,14 @@
 from attpc_engine.detector.simulator import run_simulation
 from attpc_engine.detector.parameters import (
-    Detector_Params,
-    Electronics_Params,
-    Pad_Params,
-    Parameters,
+    DetectorParams,
+    ElectronicsParams,
+    PadParams,
+    Config,
 )
 from attpc_engine.kinematics.reaction import Reaction, Decay
 from attpc_engine.kinematics.pipeline import (
     KinematicsPipeline,
+    KinematicsTargetMaterial,
     Excitation,
     run_kinematics_pipeline,
 )
@@ -18,35 +19,38 @@ import time
 
 st = time.time()
 
-# Simulate 1 event of 10Be(d,p) with the pipeline
+target = GasTarget(
+    TargetData(compound=[[1, 2, 2]], pressure=600, thickness=None), nuclear_map
+)
+
+# # Simulate 1 event of 10Be(d,p) with the pipeline
 # pipeline = KinematicsPipeline(
 #     [
 #         Reaction(
 #             target=nuclear_map.get_data(1, 2),
 #             projectile=nuclear_map.get_data(4, 10),
-#             ejectile=nuclear_map.get_data(1, 2),
+#             ejectile=nuclear_map.get_data(1, 1),
 #         )
 #     ],
-#     [Excitation(0.0)],
+#     [Excitation(1.78)],
 #     93.0,
+#     KinematicsTargetMaterial(material=target, min_distance=0.0, max_distance=1.0),
 # )
-# run_kinematics_pipeline(pipeline, 1, "/Users/zachserikow/Desktop/yup.hdf5")
+# run_kinematics_pipeline(pipeline, 100, "/Users/zachserikow/Desktop/yup.hdf5")
 
 # Specify simulation parameters
-detector = Detector_Params(
+detector = DetectorParams(
     length=1.0,
     efield=60000.0,
     bfield=3.0,
     mpgd_gain=175000,
-    gas_target=GasTarget(
-        TargetData(compound=[[1, 2, 2]], pressure=600, thickness=None), nuclear_map
-    ),
+    gas_target=target,
     diffusion=(0.277, 0.277),
     fano_factor=0.2,
     w_value=34.0,
 )
 
-electronics = Electronics_Params(
+electronics = ElectronicsParams(
     clock_freq=3.125,
     amp_gain=900,
     shaping_time=1000,
@@ -54,13 +58,13 @@ electronics = Electronics_Params(
     windows_edge=400,
 )
 
-pads = Pad_Params(
+pads = PadParams(
     map="/Users/zachserikow/Desktop/LUT.txt",
     map_params=[-280.0, 279.9, 0.1],
     electronics="/Users/zachserikow/Desktop/pad_electronics_legacy.csv",
 )
 
-params = Parameters(detector, electronics, pads)
+params = Config(detector, electronics, pads)
 
 run_simulation(
     params,

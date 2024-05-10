@@ -9,8 +9,6 @@ from ..constants import MEV_2_JOULE, MEV_2_KG, C, E_CHARGE
 KE_LIMIT = 1e-6  # 1 eV
 
 
-# State = [x, y, z, px, py, pz]
-# Derivative = [vx, vy, vz, ax, ay, az] (returns)
 def equation_of_motion(
     t: float,
     state: np.ndarray,
@@ -28,7 +26,7 @@ def equation_of_motion(
     t: float
         time step
     state: ndarray
-        the state of the particle (x,y,z,vx,vy,vz)
+        the state of the particle (x,y,z,gvx,gvy,gvz)
     Bfield: float
         the magnitude of the magnetic field
     Efield: float
@@ -44,29 +42,29 @@ def equation_of_motion(
         the derivatives of the state
     """
 
-    momentum = math.sqrt(state[3] ** 2.0 + state[4] ** 2.0 + state[5] ** 2.0)
-    mass_kg = ejectile.mass * MEV_2_KG
-    p_m = momentum / mass_kg
-    speed = p_m / math.sqrt((1.0 + (p_m * 1.0 / C) ** 2.0))
+    gv = math.sqrt(state[3] ** 2.0 + state[4] ** 2.0 + state[5] ** 2.0)
+    beta = math.sqrt(gv**2.0 / (1.0 + gv**2.0))
+    gamma = gv / beta
 
-    unit_vector = state[3:] / momentum  # direction
-    velo = unit_vector * speed
-    kinetic_energy = ejectile.mass * (
-        1.0 / math.sqrt(1.0 - (speed / C) ** 2.0) - 1.0
-    )  # MeV
+    unit_vector = state[3:] / gv  # direction
+    velo = unit_vector * beta * C  # convert to m/s
+    kinetic_energy = ejectile.mass * (gamma - 1.0)  # MeV
 
     charge_c = ejectile.Z * E_CHARGE
+    mass_kg = ejectile.mass * MEV_2_KG
+    q_m = charge_c / mass_kg
 
     deceleration = (
         target.get_dedx(ejectile, kinetic_energy) * MEV_2_JOULE * target.density * 100.0
-    )
+    ) / mass_kg
+
     results = np.zeros(6)
     results[0] = velo[0]
     results[1] = velo[1]
     results[2] = velo[2]
-    results[3] = charge_c * velo[1] * Bfield - deceleration * unit_vector[0]
-    results[4] = charge_c * (-1.0 * velo[0] * Bfield) - deceleration * unit_vector[1]
-    results[5] = charge_c * Efield - deceleration * unit_vector[2]
+    results[3] = (q_m * velo[1] * Bfield - deceleration * unit_vector[0]) / C
+    results[4] = (q_m * (-1.0 * velo[0] * Bfield) - deceleration * unit_vector[1]) / C
+    results[5] = (q_m * Efield - deceleration * unit_vector[2]) / C
 
     return results
 
@@ -108,13 +106,11 @@ def stop_condition(
         this function returns zero the termination condition has been reached.
 
     """
-    momentum = math.sqrt(state[3] ** 2.0 + state[4] ** 2.0 + state[5] ** 2.0)
-    mass_kg = ejectile.mass * MEV_2_KG
-    p_m = momentum / mass_kg
-    speed = p_m / math.sqrt((1.0 + (p_m * 1.0 / C) ** 2.0))
-    kinetic_energy = ejectile.mass * (
-        1.0 / math.sqrt(1.0 - (speed / C) ** 2.0) - 1.0
-    )  # MeV
+    gv = math.sqrt(state[3] ** 2.0 + state[4] ** 2.0 + state[5] ** 2.0)
+    beta = math.sqrt(gv**2.0 / (1.0 + gv**2.0))
+    gamma = gv / beta
+    kinetic_energy = ejectile.mass * (gamma - 1.0)  # MeV
+
     return kinetic_energy - KE_LIMIT
 
 
@@ -210,9 +206,7 @@ def rho_bound_condition(
 
     Terminate the integration of the ivp if the condition specified has been reached.
     Scipy finds the roots of this function with the ivp. The parameters must match
-    those given to the equation to be solved
-
-    Note here that the edge in rho (292 mm) is padded by 30 mm to account for conditions where the vertex is off axis
+    those given to the equation to be solved.
 
     Parameters
     ----------
@@ -236,4 +230,4 @@ def rho_bound_condition(
         this function returns zero the termination condition has been reached.
 
     """
-    return float(np.linalg.norm(state[:2])) - 0.332
+    return float(np.linalg.norm(state[:2])) - 0.292
