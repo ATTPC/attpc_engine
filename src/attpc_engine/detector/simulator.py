@@ -93,7 +93,7 @@ class SimEvent:
         counter = 0
         while counter < (kine.shape[0] - 1):
             counter += 2
-            if counter >= kine.shape[0]:
+            if counter > (kine.shape[0] - 1):
                 counter -= 1
             if (
                 proton_numbers[counter] == 0
