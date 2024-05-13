@@ -91,7 +91,7 @@ class SimEvent:
 
         # Only simulate the nuclei in the exit channel
         counter = 1
-        while counter < kine.shape[0]:
+        while counter < (kine.shape[0] - 1):
             counter += 1
             if (
                 proton_numbers[counter] == 0
