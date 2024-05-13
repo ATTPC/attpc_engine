@@ -90,8 +90,13 @@ class SimEvent:
         self.nuclei: list[SimParticle] = []
 
         # Only simulate the nuclei in the exit channel
-        counter = 2
+        counter = 1
         while counter < kine.shape[0]:
+            counter += 1
+            if (
+                proton_numbers[counter] == 0
+            ):  # pycatima cannot do energy loss for neutrons!
+                continue
             self.nuclei.append(
                 SimParticle(
                     config,
@@ -101,16 +106,6 @@ class SimEvent:
                     mass_numbers[counter],
                 )
             )
-            counter += 3
-        self.nuclei.append(
-            SimParticle(
-                config,
-                kine[counter - 2],
-                distance,
-                proton_numbers[counter - 2],
-                mass_numbers[counter - 2],
-            )
-        )
 
         self.data = self.digitize(config)
 
