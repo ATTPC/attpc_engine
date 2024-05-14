@@ -2,6 +2,7 @@ import numpy as np
 import h5py as h5
 import math
 
+from tqdm import tqdm
 from .parameters import Config
 from .solver import (
     equation_of_motion,
@@ -408,7 +409,7 @@ def run_simulation(config: Config, input_path: str, output_path: str):
     input_data_group = input["data"]
 
     evt_counter: int = 0
-    for event in range(input_data_group.attrs["n_events"]):
+    for event in tqdm(range(input_data_group.attrs["n_events"])):
         sim = SimEvent(
             config,
             input_data_group[f"event_{event}"],
