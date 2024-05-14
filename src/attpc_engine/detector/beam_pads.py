@@ -6,6 +6,8 @@ BEAM_PADS: list[int]
     list of pad numbers for pads in the beam region
 """
 
+import numpy as np
+
 BEAM_PADS: list[int] = [
     134,
     135,
@@ -130,3 +132,6 @@ BEAM_PADS: list[int] = [
     5860,
     5861,
 ]
+
+
+BEAM_PADS_ARRAY: np.ndarray = np.array(BEAM_PADS)

@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from spyral_utils.nuclear.target import GasTarget
 from numba import int64
 from numba.typed import Dict
+from importlib import resources
+from typing import Any
+
+DEFAULT_PAD_GEOMETRY: str = "Default"
+DEFAULT_LEGACY_PAD_GEOMETRY: str = "DefaultLegacy"
 
 
 @dataclass
@@ -82,11 +87,6 @@ class PadParams:
 
     Attributes
     ----------
-    pad_vertices: str
-        Path to location of file containing pads and their
-        vertices. Each row is formatted as (pad number, x1,
-        y1, x2, y2, ...,xn, yn) where x and y are the
-        respective coordinates of the nth vertex given in mm.
     map: str
         Path to pad map LUT.
     map_params: tuple[float, float, float]
@@ -96,11 +96,21 @@ class PadParams:
     electronics: str
         Path to electronics file containing the hardware ID
         for each pad.
+    geometry: str
+        Path to pad geometry file, containing each pad's center position.
+        Used for conversion to Spyral point cloud
     """
 
     map: str
     map_params: tuple[float, float, float]
     electronics: str
+    geometry: str = DEFAULT_PAD_GEOMETRY
+
+
+@dataclass
+class PadData:
+    x: float
+    y: float
 
 
 class Config:
@@ -137,7 +147,8 @@ class Config:
         self.electronics = electronics_params
         self.pads = pad_params
         self.pad_map = self.load_pad_map()
-        self.hardwareid_map = self.pad_to_hardwareid()
+        # self.hardwareid_map = self.pad_to_hardwareid()
+        self.pad_data = self.load_pad_data()
 
     def calculate_drift_velocity(self) -> float:
         """
@@ -169,13 +180,54 @@ class Config:
 
         return map
 
-    def pad_to_hardwareid(self) -> dict[int : np.ndarray]:
+    def load_pad_data(self) -> dict[int, PadData]:
+        map: dict[int, PadData] = {}
+        if self.pads.geometry == DEFAULT_PAD_GEOMETRY:
+            geom_handle = resources.files("attpc_engine.detector.data").joinpath(
+                "padxy.csv"
+            )
+            with resources.as_file(geom_handle) as geopath:
+                geofile = open(geopath, "r")
+                geofile.readline()  # Remove header
+                lines = geofile.readlines()
+                for pad_number, line in enumerate(lines):
+                    entries = line.split(",")
+                    map[pad_number] = PadData(x=float(entries[0]), y=float(entries[1]))
+                geofile.close()
+            return map
+        elif self.pads.geometry == DEFAULT_LEGACY_PAD_GEOMETRY:
+            geom_handle = resources.files("attpc_engine.detector.data").joinpath(
+                "padxy_legacy.csv"
+            )
+            with resources.as_file(geom_handle) as geopath:
+                geofile = open(geopath, "r")
+                geofile.readline()  # Remove header
+                lines = geofile.readlines()
+                for pad_number, line in enumerate(lines):
+                    entries = line.split(",")
+                    map[pad_number] = PadData(x=float(entries[0]), y=float(entries[1]))
+                geofile.close()
+            return map
+        else:
+            with open(self.pads.geometry, "r") as geofile:
+                geofile.readline()  # Remove header
+                lines = geofile.readlines()
+                for pad_number, line in enumerate(lines):
+                    entries = line.split(",")
+                    map[pad_number] = PadData(x=float(entries[0]), y=float(entries[1]))
+                geofile.close()
+            return map
+
+    def get_pad_data(self, pad_id: int) -> PadData | None:
+        return self.pad_data[pad_id]
+
+    def pad_to_hardwareid(self) -> dict[int, np.ndarray]:
         """
         Creates a dictionary mapping each pad number to its hardware ID.
 
         Returns
         -------
-        numba.typed.Dict[int: np.ndarray]
+        numba.typed.Dict[int, np.ndarray]
             Numba typed dictionary mapping pad number to hardware ID. The hardware ID
             is a 1x5 array with signature (CoBo, AsAd, Aget, Aget channel, Pad).
         """
