@@ -2,6 +2,7 @@ import numpy as np
 import h5py as h5
 import math
 
+from tqdm import tqdm
 from .parameters import Config
 from .solver import (
     equation_of_motion,
@@ -90,8 +91,15 @@ class SimEvent:
         self.nuclei: list[SimParticle] = []
 
         # Only simulate the nuclei in the exit channel
-        counter = 2
-        while counter < kine.shape[0]:
+        counter = 0
+        while counter < (kine.shape[0] - 1):
+            counter += 2
+            if counter > (kine.shape[0] - 1):
+                counter -= 1
+            if (
+                proton_numbers[counter] == 0
+            ):  # pycatima cannot do energy loss for neutrons!
+                continue
             self.nuclei.append(
                 SimParticle(
                     config,
@@ -101,16 +109,6 @@ class SimEvent:
                     mass_numbers[counter],
                 )
             )
-            counter += 3
-        self.nuclei.append(
-            SimParticle(
-                config,
-                kine[counter - 2],
-                distance,
-                proton_numbers[counter - 2],
-                mass_numbers[counter - 2],
-            )
-        )
 
         self.data = self.digitize(config)
 
@@ -411,7 +409,7 @@ def run_simulation(config: Config, input_path: str, output_path: str):
     input_data_group = input["data"]
 
     evt_counter: int = 0
-    for event in range(input_data_group.attrs["n_events"]):
+    for event in tqdm(range(input_data_group.attrs["n_events"])):
         sim = SimEvent(
             config,
             input_data_group[f"event_{event}"],
