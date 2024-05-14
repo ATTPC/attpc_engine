@@ -201,6 +201,7 @@ class KinematicsPipeline:
                     np.array([distance]),
                 )
             )
+            projectile_energy = projectile_energy[0]  # Convert 1x1 array to float
         resid_ex = normalvariate(
             self.excitations[0].centroid, self.excitations[0].sigma()
         )
@@ -214,13 +215,13 @@ class KinematicsPipeline:
         self.result[0] = np.array(
             [rxn_result[0].px, rxn_result[0].py, rxn_result[0].pz, rxn_result[0].E]
         )
-        self.result[0] = np.array(
+        self.result[1] = np.array(
             [rxn_result[1].px, rxn_result[1].py, rxn_result[1].pz, rxn_result[1].E]
         )
-        self.result[0] = np.array(
+        self.result[2] = np.array(
             [rxn_result[2].px, rxn_result[2].py, rxn_result[2].pz, rxn_result[2].E]
         )
-        self.result[0] = np.array(
+        self.result[3] = np.array(
             [rxn_result[3].px, rxn_result[3].py, rxn_result[3].pz, rxn_result[3].E]
         )
 
@@ -311,7 +312,7 @@ def run_kinematics_pipeline(
 
     output_file = h5.File(output_path, "w")
 
-    data_group = output_file["data"]
+    data_group = output_file.create_group("data")
     data_group.attrs["n_events"] = n_events
     data_group.attrs["proton_numbers"] = pipeline.get_proton_numbers()
     data_group.attrs["mass_numbers"] = pipeline.get_mass_numbers()
