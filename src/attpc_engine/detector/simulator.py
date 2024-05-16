@@ -19,38 +19,6 @@ from .. import nuclear_map
 from .writer import SimulationWriter
 
 
-def get_response(config: Config) -> np.ndarray:
-    """
-    Theoretical response function of GET electronics provided by the
-    chip manufacturer. See https://doi.org/10.1016/j.nima.2016.09.018.
-
-    Parameters
-    ----------
-    params: Parameters
-        All parameters for simulation.
-
-    Returns
-    -------
-    np.ndarray
-        Returns 1xNUM_TB array of the response function evaluated
-        at each time bucket
-    """
-    response = np.zeros(NUM_TB)
-    for tb in range(NUM_TB):
-        c1 = (
-            4095 * E_CHARGE / config.electronics.amp_gain / 1e-15
-        )  # Should be 4096 or 4095?
-        c2 = tb / (
-            config.electronics.shaping_time * config.electronics.clock_freq * 0.001
-        )
-        response[tb] = c1 * math.exp(-3 * c2) * (c2**3) * math.sin(c2)
-
-    # Cannot have negative ADC values
-    response[response < 0] = 0
-
-    return response
-
-
 class SimEvent:
     """A simulated event from the kinematics pipeline.
 
@@ -136,6 +104,10 @@ class SimEvent:
 
         # Remove dead points
         points = points[points[:, 0] != -1.0]
+        points = points[points[:, 1] != -1.0]
+
+        # Remove points outside legal bounds
+        points = points[points[:, 1] < NUM_TB]
 
         # Cannot digitize event where no pads are hit
         if len(points) == 0:
