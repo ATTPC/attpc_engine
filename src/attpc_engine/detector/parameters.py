@@ -78,6 +78,7 @@ class ElectronicsParams:
     shaping_time: int
     micromegas_edge: int
     windows_edge: int
+    adc_threshold: float
 
 
 @dataclass
@@ -105,12 +106,6 @@ class PadParams:
     map_params: tuple[float, float, float]
     electronics: str
     geometry: str = DEFAULT_PAD_GEOMETRY
-
-
-@dataclass
-class PadData:
-    x: float
-    y: float
 
 
 class Config:
@@ -148,7 +143,7 @@ class Config:
         self.pads = pad_params
         self.pad_map = self.load_pad_map()
         # self.hardwareid_map = self.pad_to_hardwareid()
-        self.pad_data = self.load_pad_data()
+        self.pad_centers = self.load_pad_centers()
 
     def calculate_drift_velocity(self) -> float:
         """
@@ -180,8 +175,8 @@ class Config:
 
         return map
 
-    def load_pad_data(self) -> dict[int, PadData]:
-        map: dict[int, PadData] = {}
+    def load_pad_centers(self) -> np.ndarray:
+        map = np.zeros((10240, 2))
         if self.pads.geometry == DEFAULT_PAD_GEOMETRY:
             geom_handle = resources.files("attpc_engine.detector.data").joinpath(
                 "padxy.csv"
@@ -192,7 +187,8 @@ class Config:
                 lines = geofile.readlines()
                 for pad_number, line in enumerate(lines):
                     entries = line.split(",")
-                    map[pad_number] = PadData(x=float(entries[0]), y=float(entries[1]))
+                    map[pad_number, 0] = float(entries[0])
+                    map[pad_number, 1] = float(entries[1])
                 geofile.close()
             return map
         elif self.pads.geometry == DEFAULT_LEGACY_PAD_GEOMETRY:
@@ -205,7 +201,8 @@ class Config:
                 lines = geofile.readlines()
                 for pad_number, line in enumerate(lines):
                     entries = line.split(",")
-                    map[pad_number] = PadData(x=float(entries[0]), y=float(entries[1]))
+                    map[pad_number, 0] = float(entries[0])
+                    map[pad_number, 1] = float(entries[1])
                 geofile.close()
             return map
         else:
@@ -214,12 +211,13 @@ class Config:
                 lines = geofile.readlines()
                 for pad_number, line in enumerate(lines):
                     entries = line.split(",")
-                    map[pad_number] = PadData(x=float(entries[0]), y=float(entries[1]))
+                    map[pad_number, 0] = float(entries[0])
+                    map[pad_number, 1] = float(entries[1])
                 geofile.close()
             return map
 
-    def get_pad_data(self, pad_id: int) -> PadData | None:
-        return self.pad_data[pad_id]
+    # def get_pad_data(self, pad_id: int) -> PadData | None:
+    #     return self.pad_data[pad_id]
 
     def pad_to_hardwareid(self) -> dict[int, np.ndarray]:
         """

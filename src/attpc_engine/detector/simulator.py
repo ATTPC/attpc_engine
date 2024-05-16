@@ -1,6 +1,5 @@
 import numpy as np
 import h5py as h5
-import math
 
 from tqdm import tqdm
 from .parameters import Config
@@ -12,11 +11,14 @@ from .solver import (
     rho_bound_condition,
 )
 from scipy.integrate import solve_ivp
-from .transporter import make_traces, transport_track
+from .transporter import transport_track
 from random import normalvariate
-from ..constants import NUM_TB, E_CHARGE
 from .. import nuclear_map
 from .writer import SimulationWriter
+from ..constants import NUM_TB
+
+# Time steps to solve ODE at. Each step is 1e-10 s
+TIME_STEPS = np.linspace(0, 10e-7, 10001)
 
 
 class SimEvent:
@@ -205,9 +207,6 @@ class SimParticle:
         rho_bound_condition.terminal = True
         rho_bound_condition.direction = 1.0
 
-        # Time steps to solve ODE at. Each step is 1e-10 s
-        time_steps = np.linspace(0, 10e-7, 10001)
-
         track = solve_ivp(
             equation_of_motion,
             (0.0, 1.0),  # Set upper time limit to 1 sec. This should never be reached
@@ -219,7 +218,7 @@ class SimParticle:
                 backward_z_bound_condition,
                 rho_bound_condition,
             ],
-            t_eval=time_steps,
+            t_eval=TIME_STEPS,
             args=(
                 config.detector.bfield * -1.0,
                 config.detector.efield * -1.0,
@@ -372,6 +371,7 @@ def run_simulation(
 
     evt_counter: int = 0
     for event in tqdm(range(input_data_group.attrs["n_events"])):  # type: ignore
+        # for event in range(input_data_group.attrs["n_events"]):  # type: ignore
         sim = SimEvent(
             config,
             input_data_group[f"event_{event}"],  # type: ignore
