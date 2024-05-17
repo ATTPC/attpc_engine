@@ -5,10 +5,9 @@ from spyral_utils.nuclear.target import GasTarget
 from numba import int64
 from numba.typed import Dict
 from importlib import resources
-from typing import Any
 
-DEFAULT_PAD_GEOMETRY: str = "Default"
-DEFAULT_LEGACY_PAD_GEOMETRY: str = "DefaultLegacy"
+DEFAULT = "Default"
+DEFAULT_LEGACY = "DefaultLegacy"
 
 
 @dataclass
@@ -102,10 +101,9 @@ class PadParams:
         Used for conversion to Spyral point cloud
     """
 
-    map: str
-    map_params: tuple[float, float, float]
-    electronics: str
-    geometry: str = DEFAULT_PAD_GEOMETRY
+    grid_path: str = DEFAULT
+    electronics_path: str = DEFAULT
+    geometry_path: str = DEFAULT
 
 
 class Config:
@@ -138,14 +136,18 @@ class Config:
         electronics_params: ElectronicsParams,
         pad_params: PadParams,
     ):
-        self.detector = detector_params
-        self.electronics = electronics_params
-        self.pads = pad_params
-        self.pad_map = self.load_pad_map()
-        # self.hardwareid_map = self.pad_to_hardwareid()
-        self.pad_centers = self.load_pad_centers()
+        self.det_params = detector_params
+        self.elec_params = electronics_params
+        self.pad_params = pad_params
+        self.pad_grid: np.ndarray | None = None
+        self.pad_grid_edges: np.ndarray | None = None
+        self.pad_centers: np.ndarray | None = None
+        self.drift_velocity = 0.0
+        self.calculate_drift_velocity()
+        self.load_pad_grid()
+        self.load_pad_centers()
 
-    def calculate_drift_velocity(self) -> float:
+    def calculate_drift_velocity(self) -> None:
         """
         Calculate drift velocity of electrons in the gas.
 
@@ -154,12 +156,11 @@ class Config:
         float
             Electron drift velocity in m / time bucket
         """
-        dv: float = self.detector.length / (
-            self.electronics.windows_edge - self.electronics.micromegas_edge
+        self.drift_velocity = self.det_params.length / float(
+            self.elec_params.windows_edge - self.elec_params.micromegas_edge
         )
-        return dv
 
-    def load_pad_map(self) -> np.ndarray:
+    def load_pad_grid(self) -> None:
         """
         Loads pad map LUT as an array.
 
@@ -169,15 +170,25 @@ class Config:
             Array indexed by physical position that
             returns the pad number at that position.
         """
-        map: np.ndarray = np.loadtxt(
-            self.pads.map, dtype=np.int64, delimiter=",", skiprows=0
-        )
+        if (
+            self.pad_params.grid_path == DEFAULT
+            or self.pad_params.grid_path == DEFAULT_LEGACY
+        ):
+            grid_handle = resources.files("attpc_engine.detector.data").joinpath(
+                "pad_grid.npz"
+            )
+            with resources.as_file(grid_handle) as grid_path:
+                data = np.load(grid_path)
+                self.pad_grid = data["grid"]
+                self.pad_grid_edges = data["edges"]
+        else:
+            data = np.load(self.pad_params.grid_path)
+            self.pad_grid = data["grid"]
+            self.pad_grid_edges = data["edges"]
 
-        return map
-
-    def load_pad_centers(self) -> np.ndarray:
-        map = np.zeros((10240, 2))
-        if self.pads.geometry == DEFAULT_PAD_GEOMETRY:
+    def load_pad_centers(self) -> None:
+        self.pad_centers = np.zeros((10240, 2))
+        if self.pad_params.geometry_path == DEFAULT:
             geom_handle = resources.files("attpc_engine.detector.data").joinpath(
                 "padxy.csv"
             )
@@ -187,11 +198,10 @@ class Config:
                 lines = geofile.readlines()
                 for pad_number, line in enumerate(lines):
                     entries = line.split(",")
-                    map[pad_number, 0] = float(entries[0])
-                    map[pad_number, 1] = float(entries[1])
+                    self.pad_centers[pad_number, 0] = float(entries[0])
+                    self.pad_centers[pad_number, 1] = float(entries[1])
                 geofile.close()
-            return map
-        elif self.pads.geometry == DEFAULT_LEGACY_PAD_GEOMETRY:
+        elif self.pad_params.geometry_path == DEFAULT:
             geom_handle = resources.files("attpc_engine.detector.data").joinpath(
                 "padxy_legacy.csv"
             )
@@ -201,49 +211,15 @@ class Config:
                 lines = geofile.readlines()
                 for pad_number, line in enumerate(lines):
                     entries = line.split(",")
-                    map[pad_number, 0] = float(entries[0])
-                    map[pad_number, 1] = float(entries[1])
+                    self.pad_centers[pad_number, 0] = float(entries[0])
+                    self.pad_centers[pad_number, 1] = float(entries[1])
                 geofile.close()
-            return map
         else:
-            with open(self.pads.geometry, "r") as geofile:
+            with open(self.pad_params.geometry_path, "r") as geofile:
                 geofile.readline()  # Remove header
                 lines = geofile.readlines()
                 for pad_number, line in enumerate(lines):
                     entries = line.split(",")
-                    map[pad_number, 0] = float(entries[0])
-                    map[pad_number, 1] = float(entries[1])
+                    self.pad_centers[pad_number, 0] = float(entries[0])
+                    self.pad_centers[pad_number, 1] = float(entries[1])
                 geofile.close()
-            return map
-
-    # def get_pad_data(self, pad_id: int) -> PadData | None:
-    #     return self.pad_data[pad_id]
-
-    def pad_to_hardwareid(self) -> dict[int, np.ndarray]:
-        """
-        Creates a dictionary mapping each pad number to its hardware ID.
-
-        Returns
-        -------
-        numba.typed.Dict[int, np.ndarray]
-            Numba typed dictionary mapping pad number to hardware ID. The hardware ID
-            is a 1x5 array with signature (CoBo, AsAd, Aget, Aget channel, Pad).
-        """
-        map = Dict.empty(int64, int64[:])
-        with open(self.pads.electronics, "r") as elecfile:
-            elecfile.readline()
-            lines = elecfile.readlines()
-            for line in lines:
-                entries = line.split(",")
-                hardware = np.array(
-                    (
-                        int(entries[0]),
-                        int(entries[1]),
-                        int(entries[2]),
-                        int(entries[3]),
-                        int(entries[4]),
-                    )
-                )
-                map[int(entries[4])] = hardware
-
-        return map

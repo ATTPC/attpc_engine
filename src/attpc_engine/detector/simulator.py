@@ -58,6 +58,7 @@ class SimEvent:
         self.kine = kine
         self.distance = distance
         self.nuclei: list[SimParticle] = []
+        self.config = config
 
         # Only simulate the nuclei in the exit channel
         counter = 0
@@ -71,7 +72,6 @@ class SimEvent:
                 continue
             self.nuclei.append(
                 SimParticle(
-                    config,
                     kine[counter],
                     distance,
                     proton_numbers[counter],
@@ -79,9 +79,7 @@ class SimEvent:
                 )
             )
 
-        self.data = self.digitize(config)
-
-    def digitize(self, config: Config) -> np.ndarray | None:
+    def digitize(self) -> np.ndarray:
         """
         Digitizes the simulated event, converting the number of
         electrons detected on each pad to a signal in ADC units.
@@ -95,33 +93,20 @@ class SimEvent:
 
         Returns
         -------
-        np.ndarray | None
+        np.ndarray
             Returns a Nx(NUM_TB+5) array where each row is the
             complete trace of one pad.
         """
         # Sum traces from all particles
-        points: np.ndarray = self.nuclei[0].hits  # These are simulation points
+        points: np.ndarray = np.empty((0, 3))
         for nuc in self.nuclei:
-            points = np.vstack((points, nuc.hits))
+            points = np.vstack((points, nuc.generate_hits(self.config)))
 
-        # Remove dead points
-        points = points[points[:, 0] != -1.0]
-        points = points[points[:, 1] != -1.0]
+        # Remove dead points (no pad or electrons)
+        points = points[np.logical_and(points[:, 0] != -1.0, points[:, 1] != -1.0)]
 
         # Remove points outside legal bounds
         points = points[points[:, 1] < NUM_TB]
-
-        # Cannot digitize event where no pads are hit
-        if len(points) == 0:
-            return None
-
-        # # Convolve traces with response function to get digitized traces
-        # response: np.ndarray = np.tile(get_response(config), (traces.shape[0], 1))
-        # digi_traces = fftconvolve(traces[:, 5:], response, mode="full", axes=(1,))
-        # traces[:, 5:] = digi_traces[:, :NUM_TB]
-
-        # # Set saturated pads to max ADC
-        # traces[:, 5:][traces[:, 5:] > 4095] = 4095
 
         return points
 
@@ -148,22 +133,19 @@ class SimParticle:
         Simulated four vector of nucleus from pipeline.
     nucleus: spyral_utils.nuclear.NucleusData
         Data of the simulated nucleus
-    track: scipy.integrate.solve_ivp bunch object
-        Simulated track of nucleus in the gas target
     electrons: np.ndarray
         Array of electrons created at each point of
         the nucleus' track.
 
     Methods
     ----------
-    generate_track -> scipy.integrate.solve_ivp bunch object
-        Solves EoM for track of nucleus in gas target
+    generate_track()
+        Solves ODE for track of nucleus in gas target
 
     """
 
     def __init__(
         self,
-        config: Config,
         data: np.ndarray,
         distance: float,
         proton_number: int,
@@ -172,7 +154,6 @@ class SimParticle:
         self.data = data
         self.nucleus = nuclear_map.get_data(proton_number, mass_number)
         self.distance = distance
-        self.hits = self.generate_hits(config)
 
     def generate_track(self, config: Config, distance: float) -> np.ndarray:
         """
@@ -220,18 +201,16 @@ class SimParticle:
             ],
             t_eval=TIME_STEPS,
             args=(
-                config.detector.bfield * -1.0,
-                config.detector.efield * -1.0,
-                config.detector.gas_target,
+                config.det_params.bfield * -1.0,
+                config.det_params.efield * -1.0,
+                config.det_params.gas_target,
                 self.nucleus,
             ),
         )
 
-        return track.y
+        return track.y.T  # Return transpose to easily index by row
 
-    def generate_electrons(
-        self, config: Config, track: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def generate_electrons(self, config: Config, track: np.ndarray) -> np.ndarray:
         """
         Find the number of electrons made at each point of the nucleus' track.
 
@@ -240,17 +219,17 @@ class SimParticle:
         params: Parameters
             All parameters for simulation.
         track: np.ndarray
-            6xN array where each row is a solution to one of the ODEs evaluated at
+            Nx6 array where each row is a solution to one of the ODEs evaluated at
             the Nth time step.
 
         Returns
         -------
-        tuple[np.ndarray, np.ndarray]
-            Element 0 is the 6xN track array and element 1 is a 1xN array
-            of electrons created at each point in the track.
+        numpy.ndarray
+            Returns an array of the number of electrons made at each
+            point in the trajectory
         """
         # Find energy of nucleus at each point of its track
-        gv = np.linalg.norm(track[3:], axis=0)
+        gv = np.linalg.norm(track[:, 3:], axis=1)
         beta = np.sqrt(gv**2.0 / (1.0 + gv**2.0))
         gamma = gv / beta
         energy = self.nucleus.mass * (gamma - 1.0)  # MeV
@@ -259,58 +238,18 @@ class SimParticle:
         electrons = np.zeros_like(energy)
         electrons[1:] = abs(np.diff(energy))  # Magnitude of energy lost
         electrons *= (
-            1e6 / config.detector.w_value
+            1.0e6 / config.det_params.w_value
         )  # Convert to eV to match units of W-value
 
         # Adjust number of electrons by Fano factor, can only have integer amount of electrons
         electrons = np.array(
             [
-                normalvariate(point, np.sqrt(config.detector.fano_factor * point))
+                normalvariate(point, np.sqrt(config.det_params.fano_factor * point))
                 for point in electrons
             ],
             dtype=np.int64,
         )
-
-        # Remove points in trajectory that create less than 1 electron
-        mask = electrons >= 1
-        track = track[:, mask]
-        electrons = electrons[mask]
-
-        return track, electrons
-
-    def z_to_tb(self, config: Config, track) -> np.ndarray:
-        """
-        Converts the z-coordinate of each point in the track
-        from physical space (m) to time (time buckets). Note that
-        the time buckets returned are floats and will be rounded
-        down to their correct bins when the electrons at each
-        point are transported to the pad plane.
-
-        Parameters
-        ----------
-        params: Parameters
-            All parameters for simulation.
-        track: np.ndarray
-            6xN array where each row is a solution to one of the ODEs evaluated at
-            the Nth time step.
-
-        Returns
-        -------
-        np.ndarray[floats]
-            1xN array of time buckets for N points in the track
-            that produce one or more electrons.
-        """
-        # Z coordinates of points in track
-        zpos: np.ndarray = track[2]
-
-        dv: float = config.calculate_drift_velocity()
-
-        # Convert from m to time buckets
-        zpos = np.abs(zpos - config.detector.length)  # z relative to the micromegas
-        zpos /= dv
-        zpos += config.electronics.micromegas_edge
-
-        return zpos
+        return electrons
 
     def generate_hits(self, config: Config) -> np.ndarray:
         """
@@ -328,21 +267,32 @@ class SimParticle:
             Array of points (point cloud)
         """
         # Generate nucleus' track and calculate the electrons made at each point
-        track: np.ndarray = self.generate_track(config, self.distance)
-        track, electrons = self.generate_electrons(config, track)
+        track = self.generate_track(config, self.distance)
+        electrons = self.generate_electrons(config, track)
+
+        # Remove points in trajectory that create less than 1 electron
+        mask = electrons >= 1
+        track = track[mask]
+        electrons = electrons[mask]
 
         # Apply gain factor from micropattern gas detectors
-        electrons *= config.detector.mpgd_gain
+        electrons *= config.det_params.mpgd_gain
 
         # Convert z position of trajectory to time buckets
-        track[2] = self.z_to_tb(config, track)
+        dv = config.drift_velocity
+        track[:, 2] = (
+            config.det_params.length - track[:, 2]
+        ) / dv + config.elec_params.micromegas_edge
+
+        if config.pad_grid_edges is None or config.pad_grid is None:
+            raise ValueError("Pad grid is not loaded at SimParticle.generate_hits!")
 
         points = transport_track(
-            config.pad_map,
-            config.pads.map_params,
-            config.detector.diffusion,
-            config.detector.efield,
-            config.calculate_drift_velocity(),
+            config.pad_grid,
+            config.pad_grid_edges,
+            config.det_params.diffusion,
+            config.det_params.efield,
+            config.drift_velocity,
             track,
             electrons,
         )
@@ -368,21 +318,24 @@ def run_simulation(
 
     input = h5.File(input_path, "r")
     input_data_group = input["data"]
+    proton_numbers = input_data_group.attrs["proton_numbers"]
+    mass_numbers = input_data_group.attrs["mass_numbers"]
 
     evt_counter: int = 0
-    for event in tqdm(range(input_data_group.attrs["n_events"])):  # type: ignore
-        # for event in range(input_data_group.attrs["n_events"]):  # type: ignore
+    for event_number in tqdm(range(input_data_group.attrs["n_events"])):  # type: ignore
+        dataset: h5.Dataset = input_data_group[f"event_{event_number}"]  # type: ignore
         sim = SimEvent(
             config,
-            input_data_group[f"event_{event}"],  # type: ignore
-            input_data_group[f"event_{event}"].attrs["distance"],  # type: ignore
-            input_data_group.attrs["proton_numbers"],  # type: ignore
-            input_data_group.attrs["mass_numbers"],  # type: ignore
+            dataset[:].copy(),  # type: ignore
+            dataset.attrs["distance"],  # type: ignore
+            proton_numbers,  # type: ignore
+            mass_numbers,  # type: ignore
         )
 
-        if sim.data is None:
+        cloud = sim.digitize()
+        if len(cloud) == 0:
             continue
 
-        writer.write(sim.data, config, evt_counter)
+        writer.write(cloud, config, evt_counter)
         evt_counter += 1
     writer.set_number_of_events(evt_counter)

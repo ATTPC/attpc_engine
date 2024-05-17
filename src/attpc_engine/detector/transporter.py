@@ -129,8 +129,8 @@ def meshgrid(xarr: np.ndarray, yarr: np.ndarray) -> np.ndarray:
 
 @njit
 def position_to_index(
-    map_params: tuple[float, float, float], position: tuple[float, float]
-) -> tuple[float, float]:
+    grid_edges: np.ndarray, position: tuple[float, float]
+) -> tuple[int, int]:
     """
     Given an input position in (x, y), outputs the index on the pad map
     corresponding to that position.
@@ -151,9 +151,9 @@ def position_to_index(
     x: float = position[0] * 1000.0
     y: float = position[1] * 1000.0
 
-    low_edge: float = map_params[0]
-    high_edge: float = map_params[1]
-    bin_size: float = map_params[2]
+    low_edge: float = grid_edges[0]
+    high_edge: float = grid_edges[1]
+    bin_size: float = grid_edges[2]
 
     # Check if position is off pad plane. Return impossible index (for Numba)
     if (abs(math.floor(x)) > high_edge) or (abs(math.floor(y)) > high_edge):
@@ -167,8 +167,8 @@ def position_to_index(
 
 @njit
 def point_transport(
-    pad_map: np.ndarray,
-    map_params: tuple[float, float, float],
+    pad_grid: np.ndarray,
+    grid_edges: np.ndarray,
     time: float,
     center: tuple[float, float],
     electrons: int,
@@ -181,12 +181,11 @@ def point_transport(
 
     Parameters
     ----------
-    pad_map: np.ndarray
-        LUT of pads.
-    map_params: tuple[float, float, float] (m, m, m)
-        LUT parameters. First element is the low edge of the
-        grid, second element is the high edge, and the third
-        element is the size of each pixel in the map.
+    pad_grid: numpy.ndarray
+        Grid of pad id for a given index, where index is calculated from x-y position
+    grid_edges: numpy.ndarray
+        Edges of the pad grid in mm, as well as the step size of the grid in mm
+        Allows conversion of position to grid index. 3 element array [low_edge, hi_edge, step]
     time: float
         Time of point being transported.
     center: tuple[float, float]
@@ -208,10 +207,10 @@ def point_transport(
     """
     # Find pad number of hit pad, if it exists
     point = np.full((1, 4), -1.0)
-    index: tuple[int, int] = position_to_index(map_params, center)  # type: ignore
-    if index == (-1, -1):
+    index_x, index_y = position_to_index(grid_edges, center)
+    if index_x == -1 or index_y == -1:
         return point
-    pad: int = pad_map[index[0], index[1]]
+    pad = pad_grid[index_x, index_y]
 
     # Ensure electron hits pad plane and hits a non-beam pad
     if pad != -1 and pad not in BEAM_PADS_ARRAY:
@@ -226,8 +225,8 @@ def point_transport(
 
 @njit
 def transverse_transport(
-    pad_map: np.ndarray,
-    map_params: tuple[float, float, float],
+    pad_grid: np.ndarray,
+    grid_edges: np.ndarray,
     time: float,
     center: tuple[float, float],
     electrons: int,
@@ -247,12 +246,11 @@ def transverse_transport(
 
     Parameters
     ----------
-    pad_map: np.ndarray
-        LUT of pads.
-    map_params: tuple[float, float, float] (m, m, m)
-        LUT parameters. First element is the low edge of the
-        grid, second element is the high edge, and the third
-        element is the size of each pixel in the map.
+    pad_grid: numpy.ndarray
+        Grid of pad id for a given index, where index is calculated from x-y position
+    grid_edges: numpy.ndarray
+        Edges of the pad grid in mm, as well as the step size of the grid in mm
+        Allows conversion of position to grid index. 3 element array [low_edge, hi_edge, step]
     time: float
         Time of point being transported.
     center: tuple[float, float]
@@ -294,10 +292,10 @@ def transverse_transport(
 
     for idx, pixel in enumerate(mesh):
         # Find pad number of hit pad, if it exists
-        index: tuple[int, int] = position_to_index(map_params, pixel)  # type: ignore
-        if index == (-1, -1):
+        index_x, index_y = position_to_index(grid_edges, pixel)
+        if index_x == -1 or index_y == -1:
             continue
-        pad: int = pad_map[index[0], index[1]]
+        pad: int = pad_grid[index_x, index_y]
         pads[idx] = pad
         points[idx, 0] = pad
 
@@ -379,8 +377,8 @@ def add_longitudinal(time: float, electrons: int, sigma_l: float) -> float:
 
 @njit
 def find_pads_hit(
-    pad_map: np.ndarray,
-    map_params: tuple[float, float, float],
+    pad_grid: np.ndarray,
+    grid_edges: np.ndarray,
     time: float,
     center: tuple[float, float],
     electrons: int,
@@ -394,12 +392,11 @@ def find_pads_hit(
 
     Parameters
     ----------
-    pad_map: np.ndarray
-        LUT of pads.
-    map_params: tuple[float, float, float] (m, m, m)
-        LUT parameters. First element is the low edge of the
-        grid, second element is the high edge, and the third
-        element is the size of each pixel in the map.
+    pad_grid: numpy.ndarray
+        Grid of pad id for a given index, where index is calculated from x-y position
+    grid_edges: numpy.ndarray
+        Edges of the pad grid in mm, as well as the step size of the grid in mm
+        Allows conversion of position to grid index. 3 element array [low_edge, hi_edge, step]
     time: float
         Time of point being transported.
     center: tuple[float, float]
@@ -422,8 +419,8 @@ def find_pads_hit(
     # At least point transport
     if sigma_t == 0.0:
         points: np.ndarray = point_transport(
-            pad_map,
-            map_params,
+            pad_grid,
+            grid_edges,
             time,
             center,
             electrons,
@@ -433,8 +430,8 @@ def find_pads_hit(
     # At least transverve diffusion transport
     else:
         points: np.ndarray = transverse_transport(
-            pad_map,
-            map_params,
+            pad_grid,
+            grid_edges,
             time,
             center,
             electrons,
@@ -447,8 +444,8 @@ def find_pads_hit(
 
 @njit
 def transport_track(
-    pad_map: np.ndarray,
-    map_params: tuple[float, float, float],
+    pad_grid: np.ndarray,
+    grid_edges: np.ndarray,
     diffusion: tuple[float, float],
     efield: float,
     dv: float,
@@ -461,12 +458,11 @@ def transport_track(
 
     Parameters
     ----------
-    pad_map: np.ndarray
-        LUT of pads.
-    map_params: tuple[float, float, float] (m, m, m)
-        LUT parameters. First element is the low edge of the
-        grid, second element is the high edge, and the third
-        element is the size of each pixel in the map.
+    pad_grid: numpy.ndarray
+        Grid of pad id for a given index, where index is calculated from x-y position
+    grid_edges: numpy.ndarray
+        Edges of the pad grid in mm, as well as the step size of the grid in mm
+        Allows conversion of position to grid index. 3 element array [low_edge, hi_edge, step]
     diffusion: tuple[float, float] (V, V)
         Diffusion coefficients of electrons in the target gas. The
         first element is the transverse coefficient and the second
@@ -478,35 +474,32 @@ def transport_track(
     dv: float (m / time bucket)
         Electron drift velocity.
     track: np.ndarray
-        6xN array where each row is a solution to one of the ODEs evaluated at
+        Nx6 array where each row is a solution to one of the ODEs evaluated at
         the Nth time step.
     electrons: np.ndarray
         1xN array of electrons created each time step (point) of the trajectory.
 
     Returns
     -------
-    np.ndarray
+    numpy.ndarray
         An Nx4 array representing the simplified point cloud
     """
 
-    sigma_t: np.ndarray = np.sqrt(2 * diffusion[0] * dv * track[2] / efield)  # in m
-    sigma_l: np.ndarray = np.sqrt(
-        2 * diffusion[1] * track[2] / dv / efield
-    )  # in time buckets
-
     points = np.empty((0, 3))
-    for idx in range(track.shape[1]):
-        time = track[2, idx]
-        center = (track[0, idx], track[1, idx])
+    for idx, row in enumerate(track):
+        time = row[2]
+        center = (row[0], row[1])
         point_electrons = electrons[idx]
+        sigma_t = np.sqrt(2.0 * diffusion[0] * dv * time / efield)
+        sigma_l = np.sqrt(2.0 * diffusion[1] * time / dv / efield)
         new_points = find_pads_hit(
-            pad_map,
-            map_params,
+            pad_grid,
+            grid_edges,
             time,
             center,
             point_electrons,
-            sigma_t[idx],
-            sigma_l[idx],
+            sigma_t,
+            sigma_l,
         )
         points = np.vstack((points, new_points))
 

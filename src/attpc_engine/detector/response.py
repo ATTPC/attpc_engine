@@ -24,10 +24,10 @@ def get_response(config: Config) -> np.ndarray:
     """
     response = np.zeros(NUM_TB)
     c1 = (
-        4095 * E_CHARGE / config.electronics.amp_gain / 1e-15
+        4095 * E_CHARGE / config.elec_params.amp_gain / 1e-15
     )  # Should be 4096 or 4095?
     tbs = np.linspace(0.0, NUM_TB, NUM_TB)
-    c2 = tbs / (config.electronics.shaping_time * config.electronics.clock_freq * 0.001)
+    c2 = tbs / (config.elec_params.shaping_time * config.elec_params.clock_freq * 0.001)
     response = c1 * np.exp(-3.0 * c2) * (c2**3) * np.sin(c2)
     # Cannot have negative ADC values
     response[response < 0] = 0

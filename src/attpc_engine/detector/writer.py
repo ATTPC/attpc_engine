@@ -56,14 +56,16 @@ class SpyralWriter:
         self.response = get_response(config).copy()
 
     def write(self, data: np.ndarray, config: Config, event_number: int) -> None:
+        if config.pad_centers is None:
+            raise ValueError("Pad centers are not assigned at write!")
         spyral_format = convert_to_spyral(
             data,
-            config.electronics.windows_edge,
-            config.electronics.micromegas_edge,
-            config.detector.length,
+            config.elec_params.windows_edge,
+            config.elec_params.micromegas_edge,
+            config.det_params.length,
             self.response,
             config.pad_centers,
-            config.electronics.adc_threshold,
+            config.elec_params.adc_threshold,
         )
         self.cloud_group.create_dataset(f"cloud_{event_number}", data=spyral_format)
 
