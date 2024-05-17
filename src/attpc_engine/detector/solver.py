@@ -4,7 +4,7 @@ import numpy as np
 from spyral_utils.nuclear.target import GasTarget
 from spyral_utils.nuclear import NucleusData
 
-from ..constants import MEV_2_JOULE, MEV_2_KG, C, E_CHARGE
+from .constants import MEV_2_JOULE, MEV_2_KG, C, E_CHARGE
 
 KE_LIMIT = 1e-6  # 1 eV
 

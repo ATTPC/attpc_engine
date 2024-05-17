@@ -3,37 +3,8 @@ import numpy as np
 
 from numba import njit
 from .beam_pads import BEAM_PADS_ARRAY
-from ..constants import NUM_TB
 
 STEPS = 10
-
-
-@njit
-def make_traces(hardwareid_map, num_pads) -> np.ndarray:
-    """
-    Makes the full array of traces for each AT-TPC pad with an extra column
-    for counting if that pad received a hit. The array is Nx(NUM_TB+6) and each row
-    has the signature (CoBo, AsAd, AGET, AGET Channel, Pad, tb 1, tb 2, ...,
-    tb NUM_TB, Hit Counter) where N is the number of pads.
-
-    Parameters
-    ----------
-    hardwareid_map: numba.typed.Dict[int64: np.ndarray]
-        Dictionary mapping pad number to hardware ID.
-    num_pads: int
-        Number of pads on pad plane.
-
-    Returns
-    -------
-    np.ndarray
-        Empty array of all AT-TPC traces with hit counter appended
-        to the trace of each pad.
-    """
-    results = np.zeros((num_pads, NUM_TB + 6), dtype=np.int64)
-    for pad in range(num_pads):
-        results[pad, :5] = hardwareid_map[pad]
-
-    return results
 
 
 @njit

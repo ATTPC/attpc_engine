@@ -1,5 +1,4 @@
-from ..constants import NUM_TB, E_CHARGE
-
+from .constants import NUM_TB, E_CHARGE
 from .parameters import Config
 
 import numpy as np
@@ -13,8 +12,8 @@ def get_response(config: Config) -> np.ndarray:
 
     Parameters
     ----------
-    params: Parameters
-        All parameters for simulation.
+    config: Config
+        The simulation configuration
 
     Returns
     -------
@@ -37,6 +36,24 @@ def get_response(config: Config) -> np.ndarray:
 
 @njit
 def apply_response(response: np.ndarray, electrons: float) -> tuple[float, float]:
+    """Apply the response function to get a signal amplitude, integral
+
+    Scale the response by the number of electrons. Retrieve the amplitude,
+    integral of the response in ADC units. Signals above 11-bit max (4096) are clipped
+
+    Parameters
+    ----------
+    response: numpy.ndarray
+        The response signal
+    electrons: float
+        The number of electrons to scale by
+
+    Returns
+    -------
+    tuple[float, float]
+        The signal amplitude, integral respectively
+
+    """
     resp_sig = response * electrons
     resp_sig[resp_sig > 4095] = 4095
     return (resp_sig.max(), resp_sig.sum())

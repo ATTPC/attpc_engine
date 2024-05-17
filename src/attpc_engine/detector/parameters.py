@@ -1,10 +1,10 @@
 import numpy as np
-
 from dataclasses import dataclass
 from spyral_utils.nuclear.target import GasTarget
 from numba import int64
 from numba.typed import Dict
 from importlib import resources
+from pathlib import Path
 
 DEFAULT = "Default"
 DEFAULT_LEGACY = "DefaultLegacy"
@@ -12,34 +12,33 @@ DEFAULT_LEGACY = "DefaultLegacy"
 
 @dataclass
 class DetectorParams:
-    """
-    Data class containing all detector parameters for simulation.
+    """Dataclass containing all detector parameters for simulation.
 
     Attributes
     ----------
-    length: float (m)
-        Length of active volume of detector.
-    efield: float (V/m)
-        Magnitude of the electric field. The electric field is
+    length: float
+        Length of active volume of detector in meters
+    efield: float
+        Magnitude of the electric field in Volts/meter. The electric field is
         assumed to only have one component in the +z direction
         parallel to the incoming beam.
-    bfield: float (T)
-        Magnitude of the magnetic field. The magnetic field is
+    bfield: float
+        Magnitude of the magnetic field in Tesla. The magnetic field is
         assumed to only have one component in the +z direction
         parallel to the incoming beam.
-    mpgd_gain: int (unitless)
+    mpgd_gain: int
         Overall gain of all micropattern gas detectors used, e.g.
-        a combination of a micromegas and THGEM.
-    gas_target: GasTarget
-        Target gas in the AT-TPC.
-    diffusion: tuple(float, float) (V,V)
+        a combination of a micromegas and THGEM. Unitless.
+    gas_target: spyral_utils.nuclear.GasTarget
+        Target gas in the AT-TPC
+    diffusion: tuple[float, float]
         Diffusion coefficients of electrons in the target gas. The
         first element is the transverse coefficient and the second
-        is the longitudinal coefficient.
-    fano_factor: float (unitless)
-        Fano factor of target gas.
-    w_value: float (eV)
-        W-value of gas. This is the average energy an ionizing
+        is the longitudinal coefficient. Both in units of Volts
+    fano_factor: float
+        Fano factor of target gas. Unitless.
+    w_value: float
+        W-value of gas in eV. This is the average energy an ionizing
         loses to create one electron-ion pair in the gas.
     """
 
@@ -55,21 +54,20 @@ class DetectorParams:
 
 @dataclass
 class ElectronicsParams:
-    """
-    Data class containing all electronics parameters for simulation.
+    """Dataclass containing all electronics parameters for simulation.
 
     Attributes
     ----------
-    clock_freq: float (MHz)
-        Frequency of the GET clock.
-    amp_gain: int (fC)
-        Gain of GET amplifier.
-    shaping_time: int (ns)
-        Shaping time of GET.
-    micromegas_edge: int (timebucket)
-        The micromegas edge of the detector.
-    windows_edge: int (timebucket)
-        The windows edge of the detector.
+    clock_freq: float
+        Frequency of the GET clock in MHz.
+    amp_gain: int
+        Gain of GET amplifier in lsb/fC.
+    shaping_time: int
+        Shaping time of GET in ns.
+    micromegas_edge: int
+        The micromegas edge of the detector in time buckets.
+    windows_edge: int
+        The windows edge of the detector in time buckets.
     """
 
     clock_freq: float
@@ -82,28 +80,19 @@ class ElectronicsParams:
 
 @dataclass
 class PadParams:
-    """
-    Data class containing parameters related to the pads.
+    """Dataclass containing parameters related to the pads.
 
     Attributes
     ----------
-    map: str
-        Path to pad map LUT.
-    map_params: tuple[float, float, float]
-        LUT parameters. First element is the low edge of the
-        grid, second element is the high edge, and the third
-        element is the size of each pixel in the map.
-    electronics: str
-        Path to electronics file containing the hardware ID
-        for each pad.
-    geometry: str
-        Path to pad geometry file, containing each pad's center position.
-        Used for conversion to Spyral point cloud
+    grid_path: Path | str
+        The path to the pad grid. Default is to use the packaged grid.
+    geometry_path: Path | str
+        The path to the pad center geometry. Default is to use
+        the packaged geometry (non-legacy).
     """
 
-    grid_path: str = DEFAULT
-    electronics_path: str = DEFAULT
-    geometry_path: str = DEFAULT
+    grid_path: Path | str = DEFAULT
+    geometry_path: Path | str = DEFAULT
 
 
 class Config:
@@ -120,14 +109,6 @@ class Config:
     pads: PadParams
         Pad parameters
 
-    Methods
-    -------
-    calculate_drift_velocity()
-        Calculates the electron drift velocity.
-    load_pad_map()
-        Loads pad map LUT.
-    pad_to_hardwareid()
-        Makes a mapping from pad number to hardware ID.
     """
 
     def __init__(
@@ -143,13 +124,13 @@ class Config:
         self.pad_grid_edges: np.ndarray | None = None
         self.pad_centers: np.ndarray | None = None
         self.drift_velocity = 0.0
+        # Set everything
         self.calculate_drift_velocity()
         self.load_pad_grid()
         self.load_pad_centers()
 
     def calculate_drift_velocity(self) -> None:
-        """
-        Calculate drift velocity of electrons in the gas.
+        """Calculate drift velocity of electrons in the gas.
 
         Returns
         -------
@@ -161,14 +142,13 @@ class Config:
         )
 
     def load_pad_grid(self) -> None:
-        """
-        Loads pad map LUT as an array.
+        """Load the pad grid from an npz file
 
-        Returns
-        -------
-        map: np.ndarray
-            Array indexed by physical position that
-            returns the pad number at that position.
+        The pad grid is a regular mesh which descretizes the pad plane into
+        a NxN matrix. Each element contains the pad ID at that location
+        in space. The grid file should also contain a 3 element array with
+        the grid edges in mm and the step size of the grid.
+
         """
         if (
             self.pad_params.grid_path == DEFAULT
@@ -187,6 +167,11 @@ class Config:
             self.pad_grid_edges = data["edges"]
 
     def load_pad_centers(self) -> None:
+        """Load the pad plane centers from a csv file
+
+        Load a csv file contains the x, y center position of each pad
+
+        """
         self.pad_centers = np.zeros((10240, 2))
         if self.pad_params.geometry_path == DEFAULT:
             geom_handle = resources.files("attpc_engine.detector.data").joinpath(
