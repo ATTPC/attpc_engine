@@ -15,7 +15,7 @@ import numpy as np
 import h5py as h5
 from tqdm import trange
 from scipy.integrate import solve_ivp
-from random import normalvariate
+from numpy.random import default_rng, Generator
 
 # Time steps to solve ODE at. Each step is 1e-10 s
 TIME_STEPS = np.linspace(0, 10e-7, 10001)
@@ -77,7 +77,7 @@ class SimEvent:
                 )
             )
 
-    def digitize(self, config: Config) -> np.ndarray:
+    def digitize(self, config: Config, rng: Generator) -> np.ndarray:
         """Transform the kinematics into point clouds
 
         Digitizes the simulated event, converting the number of
@@ -99,7 +99,7 @@ class SimEvent:
         # Sum traces from all particles
         points: np.ndarray = np.empty((0, 3))
         for nuc in self.nuclei:
-            new_points = nuc.generate_point_cloud(config)
+            new_points = nuc.generate_point_cloud(config, rng)
             if len(new_points) != 0:
                 points = np.vstack((points, new_points))
 
@@ -209,7 +209,9 @@ class SimParticle:
 
         return track.y.T  # Return transpose to easily index by row
 
-    def generate_electrons(self, config: Config, track: np.ndarray) -> np.ndarray:
+    def generate_electrons(
+        self, config: Config, track: np.ndarray, rng: Generator
+    ) -> np.ndarray:
         """Find the number of electrons made at each point of the nucleus' track.
 
         Parameters
@@ -219,6 +221,8 @@ class SimParticle:
         track: np.ndarray
             Nx6 array where each row is a solution to one of the ODEs evaluated at
             the Nth time step.
+        rng: numpy.random.Generator
+            numpy random number generator
 
         Returns
         -------
@@ -242,14 +246,14 @@ class SimParticle:
         # Adjust number of electrons by Fano factor, can only have integer amount of electrons
         electrons = np.array(
             [
-                normalvariate(point, np.sqrt(config.det_params.fano_factor * point))
+                rng.normal(point, np.sqrt(config.det_params.fano_factor * point))
                 for point in electrons
             ],
             dtype=np.int64,
         )
         return electrons
 
-    def generate_point_cloud(self, config: Config) -> np.ndarray:
+    def generate_point_cloud(self, config: Config, rng: Generator) -> np.ndarray:
         """Create the point cloud
 
         Finds the pads hit by the electrons transported from each point
@@ -267,7 +271,7 @@ class SimParticle:
         """
         # Generate nucleus' track and calculate the electrons made at each point
         track = self.generate_track(config, self.distance)
-        electrons = self.generate_electrons(config, track)
+        electrons = self.generate_electrons(config, track, rng)
 
         # Remove points in trajectory that create less than 1 electron
         mask = electrons >= 1
@@ -295,6 +299,9 @@ class SimParticle:
             track,
             electrons,
         )
+        # Wiggle point TBs over interval [0.0, 1.0). This simulates effect of converting
+        # the (in principle) int TBs to floats.
+        points[:, 1] += rng.uniform(low=0.0, high=1.0, size=len(points))
         return points
 
 
@@ -326,6 +333,8 @@ def run_simulation(
     n_events: int = input_data_group.attrs["n_events"]  # type: ignore
     writer.set_number_of_events(n_events)
 
+    rng = default_rng()
+
     for event_number in trange(n_events):  # type: ignore
         dataset: h5.Dataset = input_data_group[f"event_{event_number}"]  # type: ignore
         sim = SimEvent(
@@ -335,7 +344,7 @@ def run_simulation(
             mass_numbers,  # type: ignore
         )
 
-        cloud = sim.digitize(config)
+        cloud = sim.digitize(config, rng)
         if len(cloud) == 0:
             continue
 

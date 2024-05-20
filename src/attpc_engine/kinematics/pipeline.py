@@ -3,9 +3,9 @@ from .reaction import Reaction, Decay
 from spyral_utils.nuclear.target import GasTarget
 import numpy as np
 import h5py as h5
-from random import uniform, normalvariate
 from dataclasses import dataclass
 from pathlib import Path
+from numpy.random import default_rng
 
 
 @dataclass
@@ -121,6 +121,7 @@ class KinematicsPipeline:
         self.reaction: Reaction = steps[0]
         self.decays: list[Decay] = []
         self.excitations = excitations
+        self.rng = default_rng()
 
         # Analyze pipeline for errors
         for idx in range(1, len(steps)):
@@ -184,12 +185,12 @@ class KinematicsPipeline:
         # First step (reaction)
 
         # Sample
-        ejectile_theta_cm = np.arccos(uniform(-1.0, 1.0))
-        ejectile_phi_cm = uniform(0.0, np.pi * 2.0)
+        ejectile_theta_cm = np.arccos(self.rng.uniform(-1.0, 1.0))
+        ejectile_phi_cm = self.rng.uniform(0.0, np.pi * 2.0)
         projectile_energy = self.beam_energy
         distance = 0.0
         if self.target_material is not None:
-            distance = uniform(
+            distance = self.rng.uniform(
                 self.target_material.min_distance,
                 self.target_material.max_distance,
             )
@@ -202,7 +203,7 @@ class KinematicsPipeline:
                 )
             )
             projectile_energy = projectile_energy[0]  # Convert 1x1 array to float
-        resid_ex = normalvariate(
+        resid_ex = self.rng.normal(
             self.excitations[0].centroid, self.excitations[0].sigma()
         )
 
@@ -228,9 +229,9 @@ class KinematicsPipeline:
         # Do all the decay steps
         prev_resid = rxn_result[3]
         for idx, decay in enumerate(self.decays):
-            resid_1_theta_cm = np.arccos(uniform(-1.0, 1.0))
-            resid_1_phi_cm = uniform(0.0, np.pi * 2.0)
-            resid_2_ex = normalvariate(
+            resid_1_theta_cm = np.arccos(self.rng.uniform(-1.0, 1.0))
+            resid_1_phi_cm = self.rng.uniform(0.0, np.pi * 2.0)
+            resid_2_ex = self.rng.normal(
                 self.excitations[idx + 1].centroid, self.excitations[idx + 1].sigma()
             )
             decay_result = decay.calculate(
