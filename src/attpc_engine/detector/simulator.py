@@ -99,7 +99,9 @@ class SimEvent:
         # Sum traces from all particles
         points: np.ndarray = np.empty((0, 3))
         for nuc in self.nuclei:
-            points = np.vstack((points, nuc.generate_point_cloud(config)))
+            new_points = nuc.generate_point_cloud(config)
+            if len(new_points) != 0:
+                points = np.vstack((points, new_points))
 
         # Remove dead points (no pad or electrons)
         points = points[np.logical_and(points[:, 0] != -1.0, points[:, 1] != -1.0)]
@@ -293,11 +295,6 @@ class SimParticle:
             track,
             electrons,
         )
-        # Smear Time buckets over range 0.0, 1.0 TB.
-        # Simulates uncertainty of converting from integer TB to
-        # floating point TB
-
-        points[:, 2] += np.random.random(len(points))
         return points
 
 

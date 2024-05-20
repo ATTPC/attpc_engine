@@ -187,8 +187,9 @@ def point_transport(
         point[0, 0] = pad
         point[0, 1] = time
         point[0, 2] = electrons  # for the purposes of simulation charge = integral
-
-    return point
+        return point
+    else:
+        return np.empty((0, 4), float)
 
 
 @njit
@@ -277,6 +278,12 @@ def transverse_transport(
             )
             points[idx, 1] = time
             points[idx, 2] = pixel_electrons
+
+    mask = np.logical_and(points[:, 0] != -1.0, points[:, 1] != -1)
+    points = points[mask]
+    pads = pads[mask]
+    if len(points) == 0:
+        return points
 
     # Combine points that lie within the same pad for this time t
     unique_pads = np.unique(pads)
