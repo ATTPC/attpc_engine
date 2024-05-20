@@ -73,7 +73,7 @@ class SpyralWriter:
         )
         # No ic stuff from simulation
         dset.attrs["ic_amplitude"] = -1.0
-        dset.attrs["ic_multipliticy"] = -1.0
+        dset.attrs["ic_multiplicity"] = -1.0
         dset.attrs["ic_integral"] = -1.0
         dset.attrs["ic_centroid"] = -1.0
 
