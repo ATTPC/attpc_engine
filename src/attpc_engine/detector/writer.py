@@ -67,7 +67,15 @@ class SpyralWriter:
             config.pad_centers,
             config.elec_params.adc_threshold,
         )
-        self.cloud_group.create_dataset(f"cloud_{event_number}", data=spyral_format)
+
+        dset = self.cloud_group.create_dataset(
+            f"cloud_{event_number}", data=spyral_format
+        )
+        # No ic stuff from simulation
+        dset.attrs["ic_amplitude"] = -1.0
+        dset.attrs["ic_multipliticy"] = -1.0
+        dset.attrs["ic_integral"] = -1.0
+        dset.attrs["ic_centroid"] = -1.0
 
     def set_number_of_events(self, n_events: int) -> None:
         self.cloud_group.attrs["min_event"] = 0
