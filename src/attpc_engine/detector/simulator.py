@@ -293,6 +293,11 @@ class SimParticle:
             track,
             electrons,
         )
+        # Smear Time buckets over range 0.0, 1.0 TB.
+        # Simulates uncertainty of converting from integer TB to
+        # floating point TB
+
+        points[:, 2] += np.random.random(len(points))
         return points
 
 

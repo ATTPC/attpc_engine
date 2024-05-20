@@ -32,9 +32,8 @@ class DetectorParams:
     gas_target: spyral_utils.nuclear.GasTarget
         Target gas in the AT-TPC
     diffusion: tuple[float, float]
-        Diffusion coefficients of electrons in the target gas. The
-        first element is the transverse coefficient and the second
-        is the longitudinal coefficient. Both in units of Volts
+        Transverse diffusion coefficient of electrons in the target gas.
+        In units of Volts
     fano_factor: float
         Fano factor of target gas. Unitless.
     w_value: float
@@ -47,7 +46,7 @@ class DetectorParams:
     bfield: float
     mpgd_gain: int
     gas_target: GasTarget
-    diffusion: tuple[float, float]
+    diffusion: float
     fano_factor: float
     w_value: float
 

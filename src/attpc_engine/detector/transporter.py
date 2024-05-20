@@ -143,7 +143,6 @@ def point_transport(
     time: float,
     center: tuple[float, float],
     electrons: int,
-    sigma_l: float,
 ) -> np.ndarray:
     """
     Transports all electrons created at a point in a simulated nucleus' track
@@ -188,8 +187,6 @@ def point_transport(
         point[0, 0] = pad
         point[0, 1] = time
         point[0, 2] = electrons  # for the purposes of simulation charge = integral
-        if sigma_l != 0.0:
-            point[0, 1] = add_longitudinal(time, electrons, sigma_l)
 
     return point
 
@@ -202,7 +199,6 @@ def transverse_transport(
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-    sigma_l: float,
 ) -> np.ndarray:
     """
     Transports all electrons created at a point in a simulated nucleus'
@@ -282,9 +278,6 @@ def transverse_transport(
             points[idx, 1] = time
             points[idx, 2] = pixel_electrons
 
-            if sigma_l != 0.0:
-                points[idx, 1] = add_longitudinal(time, pixel_electrons, sigma_l)
-
     # Combine points that lie within the same pad for this time t
     unique_pads = np.unique(pads)
     downsample = np.full((len(unique_pads), 3), -1.0)
@@ -298,55 +291,6 @@ def transverse_transport(
 
 
 @njit
-def add_longitudinal(time: float, electrons: int, sigma_l: float) -> float:
-    """
-    Applies longitudinal diffusion to electrons after they have been transported
-    to the pad plane, hence the diffusion is applied on the time of arrival and not
-    in physical space along the z direction. Similar to the transverse_transport function,
-    a 1D mesh is created from -3 sigma to 3 sigma in the time bucket dimension. The
-    number of steps is controlled by the STEPS parameter at the top of this file.
-    Note, that because we specify only the number of steps this means that the step size
-    varies from point to point in a trajectory. Each step in the mesh has a number of
-    electrons in it calculated from the normal distribution PDF.
-
-    Parameters
-    ----------
-    time: float
-        Time of point being transported.
-    electrons: int
-        Number of electrons made at point being transported.
-    sigma_l: float
-        Standard deviation of longitudinal diffusion at point being transported.
-
-    Returns
-    -------
-    float
-        The mean diffuse time
-    """
-
-    mean_time = int(np.random.normal(float(time), sigma_l, electrons).mean())
-    return mean_time
-
-    # # Create time buckets to diffuse over
-    # tblims = (centertb - 3 * sigma_l, centertb + 3 * sigma_l)
-    # tbsteps = np.linspace(*tblims, STEPS)
-    # step_sizetb: float = 2 * 3 * sigma_l / (STEPS - 1)
-
-    # # Ensure diffusion is within allowed time buckets
-    # tbsteps = tbsteps[(0 <= tbsteps) & (tbsteps < NUM_TB)]
-
-    # # Remove electrons in preparation for diffusion
-
-    # # Do longitudinal diffusion
-    # for step in tbsteps:
-    #     signal[int(step)] += int(
-    #         normal_pdf(step, centertb, sigma_l) * step_sizetb * electrons
-    #     )
-
-    # return signal
-
-
-@njit
 def find_pads_hit(
     pad_grid: np.ndarray,
     grid_edges: np.ndarray,
@@ -354,7 +298,6 @@ def find_pads_hit(
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-    sigma_l: float,
 ) -> np.ndarray:
     """
     Finds the pads hit by transporting the electrons created at a point in
@@ -395,7 +338,6 @@ def find_pads_hit(
             time,
             center,
             electrons,
-            sigma_l,
         )
 
     # At least transverve diffusion transport
@@ -407,7 +349,6 @@ def find_pads_hit(
             center,
             electrons,
             sigma_t,
-            sigma_l,
         )
 
     return points
@@ -417,7 +358,7 @@ def find_pads_hit(
 def transport_track(
     pad_grid: np.ndarray,
     grid_edges: np.ndarray,
-    diffusion: tuple[float, float],
+    diffusion: float,
     efield: float,
     dv: float,
     track: np.ndarray,
@@ -434,16 +375,14 @@ def transport_track(
     grid_edges: numpy.ndarray
         Edges of the pad grid in mm, as well as the step size of the grid in mm
         Allows conversion of position to grid index. 3 element array [low_edge, hi_edge, step]
-    diffusion: tuple[float, float] (V, V)
-        Diffusion coefficients of electrons in the target gas. The
-        first element is the transverse coefficient and the second
-        is the longitudinal coefficient.
-    efield: float (V / m)
+    diffusion: float
+        Transverse iffusion coefficient of electrons in the target gas. Units of V
+    efield: float
         Magnitude of the electric field. The electric field is
         assumed to only have one component in the +z direction
-        parallel to the incoming beam.
-    dv: float (m / time bucket)
-        Electron drift velocity.
+        parallel to the incoming beam. Units of V/m
+    dv: float
+        Electron drift velocity. Units of m/TimeBucket
     track: np.ndarray
         Nx6 array where each row is a solution to one of the ODEs evaluated at
         the Nth time step.
@@ -453,7 +392,7 @@ def transport_track(
     Returns
     -------
     numpy.ndarray
-        An Nx4 array representing the simplified point cloud
+        An Nx3 array representing the simplified point cloud
     """
 
     points = np.empty((0, 3))
@@ -461,8 +400,7 @@ def transport_track(
         time = row[2]
         center = (row[0], row[1])
         point_electrons = electrons[idx]
-        sigma_t = np.sqrt(2.0 * diffusion[0] * dv * time / efield)
-        sigma_l = np.sqrt(2.0 * diffusion[1] * time / dv / efield)
+        sigma_t = np.sqrt(2.0 * diffusion * dv * time / efield)
         new_points = find_pads_hit(
             pad_grid,
             grid_edges,
@@ -470,7 +408,6 @@ def transport_track(
             center,
             point_electrons,
             sigma_t,
-            sigma_l,
         )
         points = np.vstack((points, new_points))
 
