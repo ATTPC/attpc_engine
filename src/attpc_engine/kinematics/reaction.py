@@ -67,6 +67,37 @@ class Reaction:
         """
         return self.reaction_symbol
 
+    def is_excitation_allowed(
+        self, projectile_energy: float, residual_excitation: float
+    ) -> bool:
+        """Check if a given exctiation, projectile energy is energetically allowed
+
+        Parameters
+        ----------
+        projectile_energy: float
+            The projectile kinetic energy in MeV
+        residual_excitation: float
+            The residual excitation energy in MeV
+
+        Returns
+        -------
+        bool
+            True if allowed, False if not
+        """
+        q_value = (
+            self.target.mass
+            + self.projectile.mass
+            - (self.ejectile.mass + self.residual.mass + residual_excitation)
+        )
+
+        e_threshold = (
+            -q_value
+            * (self.ejectile.mass + self.residual.mass)
+            / (self.ejectile.mass + self.residual.mass - self.projectile.mass)
+        )
+
+        return projectile_energy >= e_threshold
+
     def calculate(
         self,
         projectile_energy: float,
@@ -193,6 +224,28 @@ class Decay:
             The decay equation as a string
         """
         return self.decay_symbol
+
+    def is_excitation_allowed(
+        self, parent_vector: vector.MomentumObject4D, residual_2_excitation: float
+    ) -> bool:
+        """Check if a given exctiation, parent vector is energetically allowed
+
+        Parameters
+        ----------
+        parent_vector: vector.MomentumObject4D
+            The momentum 4-vector of the parent (decaying) nucleus
+        residual_2_excitation: float
+            The residual excitation energy in MeV
+
+        Returns
+        -------
+        bool
+            True if allowed, False if not
+        """
+        q_value = parent_vector.M - (
+            self.residual_1.mass + self.residual_2.mass + residual_2_excitation
+        )
+        return q_value > 0.0
 
     def calculate(
         self,

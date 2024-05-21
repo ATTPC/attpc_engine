@@ -26,15 +26,15 @@ class SimEvent:
 
     Parameters
     ----------
-    kine: np.ndarray
+    kine: numpy.ndarray
         Nx4 array of four vectors of all N nuclei in the simulated event. From first
         to last column are px, py, pz, E.
-    distance: float
-        Linear distance the incoming nucleus travelled before it underwent a reaction.
-        The angle between the incoming particle and the detector is 0 degrees.
-    proton_numbers: np.ndarray
+    vertex: numpy.ndarray
+        The reaction vertex position in meters. Given as a 3-array formated
+        [x,y,z].
+    proton_numbers: numpy.ndarray
         Nx1 array of proton numbers of all nuclei from reaction and decays in the pipeline.
-    mass_numbers: np.ndarray
+    mass_numbers: numpy.ndarray
         Nx1 array of mass numbers of all nuclei from reaction and decasy in the pipeline.
 
     Attributes
@@ -51,7 +51,7 @@ class SimEvent:
     def __init__(
         self,
         kinematics: np.ndarray,
-        distance: float,
+        vertex: np.ndarray,
         proton_numbers: np.ndarray,
         mass_numbers: np.ndarray,
     ):
@@ -67,13 +67,13 @@ class SimEvent:
                 continue
             self.nuclei.append(
                 SimParticle(
-                    kinematics[idx], distance, proton_numbers[idx], mass_numbers[idx]
+                    kinematics[idx], vertex, proton_numbers[idx], mass_numbers[idx]
                 )
             )
         if proton_numbers[-1] != 0:
             self.nuclei.append(
                 SimParticle(
-                    kinematics[-1], distance, proton_numbers[-1], mass_numbers[-1]
+                    kinematics[-1], vertex, proton_numbers[-1], mass_numbers[-1]
                 )
             )
 
@@ -92,7 +92,7 @@ class SimEvent:
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             An Nx3 array representing the point cloud. Each row is a point, with elements
             [pad id, time bucket, electrons]
         """
@@ -118,10 +118,11 @@ class SimParticle:
 
     Parameters
     ----------
-    data: np.ndarray
+    data: numpy.ndarray
         Simulated four vector of nucleus from kinematics.
-    distance: float
-        The on-beam-axis position of the reaction in the detector
+    vertex: numpy.ndarray
+        The reaction vertex position in meters. Given as a 3-array formated
+        [x,y,z].
     proton_number: int
         Number of protons in nucleus
     mass_number: int
@@ -129,12 +130,13 @@ class SimParticle:
 
     Attributes
     ----------
-    data: np.ndarray
+    data: numpy.ndarray
         Simulated four vector of nucleus from kinematics.
     nucleus: spyral_utils.nuclear.NucleusData
         Data of the simulated nucleus
-    distance: float
-        The on-beam-axis position of the reaction in the detector
+    vertex: numpy.ndarray
+        The reaction vertex position in meters. Given as a 3-array formated
+        [x,y,z].
 
     Methods
     ----------
@@ -146,15 +148,15 @@ class SimParticle:
     def __init__(
         self,
         data: np.ndarray,
-        distance: float,
+        vertex: np.ndarray,
         proton_number: int,
         mass_number: int,
     ):
         self.data = data
         self.nucleus = nuclear_map.get_data(proton_number, mass_number)
-        self.distance = distance
+        self.vertex = vertex
 
-    def generate_track(self, config: Config, distance: float) -> np.ndarray:
+    def generate_track(self, config: Config) -> np.ndarray:
         """Solves EoM for this nucleus in the AT-TPC
 
         Solution is evaluated over a fixed time interval.
@@ -163,18 +165,16 @@ class SimParticle:
         ----------
         config: Config
             The simulation configuration
-        distance: float
-            The on-beam-axis position of the reaction in the detector
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             Nx6 array where each row is a solution to one of the ODEs evaluated at
             the Nth time step.
         """
         # Find initial state of nucleus. (x, y, z, px, py, pz)
         initial_state: np.ndarray = np.zeros(6)
-        initial_state[2] = distance  # m
+        initial_state[:3] = self.vertex  # m
         initial_state[3:] = self.data[:3] / self.nucleus.mass  # unitless (gamma * beta)
 
         # Set ODE stop conditions. See SciPy solve_ivp docs
@@ -218,7 +218,7 @@ class SimParticle:
         ----------
         config: Config
             The simulation configuration
-        track: np.ndarray
+        track: numpy.ndarray
             Nx6 array where each row is a solution to one of the ODEs evaluated at
             the Nth time step.
         rng: numpy.random.Generator
@@ -270,7 +270,7 @@ class SimParticle:
             Array of points (point cloud)
         """
         # Generate nucleus' track and calculate the electrons made at each point
-        track = self.generate_track(config, self.distance)
+        track = self.generate_track(config)
         electrons = self.generate_electrons(config, track, rng)
 
         # Remove points in trajectory that create less than 1 electron
@@ -339,7 +339,13 @@ def run_simulation(
         dataset: h5.Dataset = input_data_group[f"event_{event_number}"]  # type: ignore
         sim = SimEvent(
             dataset[:].copy(),  # type: ignore
-            dataset.attrs["distance"],  # type: ignore
+            np.array(
+                [
+                    dataset.attrs["vertex_x"],
+                    dataset.attrs["vertex_y"],
+                    dataset.attrs["vertex_z"],
+                ]
+            ),
             proton_numbers,  # type: ignore
             mass_numbers,  # type: ignore
         )
