@@ -17,6 +17,8 @@ class SimulationWriter(Protocol):
     def set_number_of_events(self, n_events: int) -> None:
         pass
 
+    def get_filename(self) -> Path: ...
+
 
 @njit
 def convert_to_spyral(
@@ -80,3 +82,6 @@ class SpyralWriter:
     def set_number_of_events(self, n_events: int) -> None:
         self.cloud_group.attrs["min_event"] = 0
         self.cloud_group.attrs["max_event"] = n_events - 1
+
+    def get_filename(self) -> Path:
+        return self.path

@@ -7,6 +7,7 @@ import h5py as h5
 from dataclasses import dataclass
 from pathlib import Path
 from numpy.random import default_rng
+from tqdm import trange
 
 
 @dataclass
@@ -305,6 +306,11 @@ def run_kinematics_pipeline(
         The path to which the data should be written (HDF5 format)
     """
 
+    print("------- AT-TPC Simulation Engine -------")
+    print(f"Sampling kinematics from reaction: {pipeline}")
+    print(f"Running for {n_events} samples.")
+    print(f"Output will be written to {output_path}.")
+
     output_file = h5.File(output_path, "w")
 
     data_group = output_file.create_group("data")
@@ -312,10 +318,13 @@ def run_kinematics_pipeline(
     data_group.attrs["proton_numbers"] = pipeline.get_proton_numbers()
     data_group.attrs["mass_numbers"] = pipeline.get_mass_numbers()
 
-    for event in range(0, n_events):
+    print("Start your engine!")
+    for event in trange(0, n_events):
         vertex, result = pipeline.run()
         data = data_group.create_dataset(f"event_{event}", data=result)  # type: ignore
         data.attrs["vertex_x"] = vertex[0]
         data.attrs["vertex_y"] = vertex[1]
         data.attrs["vertex_z"] = vertex[2]
     output_file.close()
+    print("Done.")
+    print("----------------------------------------")

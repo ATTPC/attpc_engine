@@ -324,17 +324,21 @@ def run_simulation(
     writer: SimulationWriter
         An object which implements the SimulationWriter Protocol
     """
-
+    print("------- AT-TPC Simulation Engine -------")
+    print(f"Applying detector effects to kinematics from file: {input_path}")
     input = h5.File(input_path, "r")
     input_data_group = input["data"]
     proton_numbers = input_data_group.attrs["proton_numbers"]
     mass_numbers = input_data_group.attrs["mass_numbers"]
 
     n_events: int = input_data_group.attrs["n_events"]  # type: ignore
+    print(f"Found {n_events} kinematics events.")
     writer.set_number_of_events(n_events)
+    print(f"Output will be written to {writer.get_filename()}.")
 
     rng = default_rng()
 
+    print("Start your engine!")
     for event_number in trange(n_events):  # type: ignore
         dataset: h5.Dataset = input_data_group[f"event_{event_number}"]  # type: ignore
         sim = SimEvent(
@@ -355,3 +359,5 @@ def run_simulation(
             continue
 
         writer.write(cloud, config, event_number)
+    print("Done.")
+    print("----------------------------------------")
