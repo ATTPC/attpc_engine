@@ -1,0 +1,79 @@
+site_name: attpc_engine
+site_url: https://example.com/
+repo_url: https://github.com/ATTPC/attpc_engine/
+site_description: Documentation for the AT-TPC Simulation Engine
+
+nav:
+  - Home: index.md
+  - User Guide:
+    - Setup and Installation: user_guide/setup.md
+    - Getting Started: user_guide/getting_started.md
+    - Systems:
+      - About Systems: user_guide/systems.md
+      - Kinematics: user_guide/kinematics/index.md
+      - Detector: user_guide/detector/index.md
+    - Numba: user_guide/numba.md
+  - API Reference:
+    - About: api/index.md
+    - detector:
+      - About detector: api/detector/index.md
+      - beam_pads: api/detector/beam_pads.md
+      - constants: api/detector/constants.md
+      - parameters: api/detector/parameters.md
+      - response: api/detector/response.md
+      - simulator: api/detector/simulator.md
+      - solver: api/detector/solver.md
+      - transporter: api/detector/transporter.md
+      - writer: api/detector/writer.md
+    - kinematics:
+      - About kinematics: api/kinematics/index.md
+      - excitation: api/kinematics/excitation.md
+      - pipeline: api/kinematics/pipeline.md
+      - reaction: api/kinematics/reaction.md
+  - FAQ: faq.md
+  - For Developers: for_devs.md
+
+theme:
+  name: material
+  language: en
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: green
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: lime
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            allow_inspection: true
+            docstring_style: numpy
+
+markdown_extensions:
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+extra_javascript:
+  - javascript/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
