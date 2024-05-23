@@ -96,7 +96,7 @@ class SimEvent:
             An Nx3 array representing the point cloud. Each row is a point, with elements
             [pad id, time bucket, electrons]
         """
-        # Sum traces from all particles
+        # Sum points from all particles
         points: np.ndarray = np.empty((0, 3))
         for nuc in self.nuclei:
             new_points = nuc.generate_point_cloud(config, rng)
@@ -142,7 +142,11 @@ class SimParticle:
     ----------
     generate_track()
         Solves EoM for this nucleus in the AT-TPC
-
+    generate_electrons()
+        Finds the number of electrons produced at each point of the
+        simulated track
+    generate_point_cloud()
+        Makes the AT-TPC point cloud of this nucleus' track
     """
 
     def __init__(
@@ -281,6 +285,7 @@ class SimParticle:
         # Apply gain factor from micropattern gas detectors
         electrons *= config.det_params.mpgd_gain
 
+        # This time bucket is exact. If we wiggle, we must int this first. Int te time going into transport_track?
         # Convert z position of trajectory to time buckets
         dv = config.drift_velocity
         track[:, 2] = (

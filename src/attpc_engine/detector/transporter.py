@@ -8,32 +8,6 @@ STEPS = 10
 
 
 @njit
-def normal_pdf(x: float, mu: float, sigma: float) -> float:
-    """
-    Equation of PDF corresponding to a 1D normal distribution.
-
-    Parameters
-    ----------
-    x: float
-        Value to evaluate PDF at.
-    mu: float
-        Mean of distribution.
-    sigma: float
-        Standard deviation of distribution.
-
-    Returns
-    -------
-    float
-        Value of distribution with the input mean and sigma
-        at the input value.
-    """
-    c1: float = 1 / math.sqrt(2 * np.pi) / sigma
-    c2: float = (-1 / 2) * ((x - mu) / sigma) ** 2
-
-    return c1 * math.exp(c2)
-
-
-@njit
 def bivariate_normal_pdf(
     point: tuple[float, float], mu: tuple[float, float], sigma: float
 ) -> float:
@@ -126,7 +100,7 @@ def position_to_index(
     high_edge: float = grid_edges[1]
     bin_size: float = grid_edges[2]
 
-    # Check if position is off pad plane. Return impossible index (for Numba)
+    # Check if position is off pad plane. This condition requires a symmetric pad map!
     if (abs(math.floor(x)) > high_edge) or (abs(math.floor(y)) > high_edge):
         return (-1, -1)
 
@@ -146,8 +120,7 @@ def point_transport(
 ) -> np.ndarray:
     """
     Transports all electrons created at a point in a simulated nucleus' track
-    straight to the pad plane. If the input longitudinal diffusion is not 0, then
-    longitudinal diffusion is applied as well.
+    straight to the pad plane.
 
     Parameters
     ----------
@@ -165,12 +138,11 @@ def point_transport(
 
     Returns
     -------
-    np.ndarray
-        Array of all AT-TPC traces with hit counter appended
-        to the trace of each pad.
+    numpy.ndarray
+        An Nx3 array representing the simplified point cloud
     """
     # Find pad number of hit pad, if it exists
-    point = np.full((1, 4), -1.0)
+    point = np.full((1, 3), -1.0)
     index_x, index_y = position_to_index(grid_edges, center)
     if index_x == -1 or index_y == -1:
         return point
@@ -183,7 +155,7 @@ def point_transport(
         point[0, 2] = electrons  # for the purposes of simulation charge = integral
         return point
     else:
-        return np.empty((0, 4), float)
+        return np.empty((0, 3), float)
 
 
 @njit
@@ -225,9 +197,8 @@ def transverse_transport(
 
     Returns
     -------
-    np.ndarray
-        Array of all AT-TPC traces with hit counter appended
-        to the trace of each pad.
+    numpy.ndarray
+        An Nx3 array representing the simplified point cloud
     """
     mesh_centerx: float = center[0]
     mesh_centery: float = center[1]
@@ -243,7 +214,8 @@ def transverse_transport(
 
     # Point per mesh val
     points = np.full((len(mesh), 3), -1.0)
-    # No pixels in mesh
+
+    # TODO needs testing
     if len(points) == 0:
         return points
 
@@ -255,6 +227,8 @@ def transverse_transport(
         if index_x == -1 or index_y == -1:
             continue
         pad: int = pad_grid[index_x, index_y]
+
+        # why not put these two in the if condition which will get rid of the logical and
         pads[idx] = pad
         points[idx, 0] = pad
 
@@ -273,6 +247,7 @@ def transverse_transport(
     mask = np.logical_and(points[:, 0] != -1.0, points[:, 1] != -1)
     points = points[mask]
     pads = pads[mask]
+
     if len(points) == 0:
         return points
 
@@ -282,7 +257,7 @@ def transverse_transport(
     for idx, pad in enumerate(unique_pads):
         subpoints = points[points[:, 0] == pad]
         downsample[idx, 0] = pad
-        downsample[idx, 1] = subpoints[:, 1].mean()
+        downsample[idx, 1] = time
         downsample[idx, 2] = subpoints[:, 2].sum()
 
     return downsample
@@ -299,8 +274,7 @@ def find_pads_hit(
 ) -> np.ndarray:
     """
     Finds the pads hit by transporting the electrons created at a point in
-    the nucleus' trajectory to the pad plane and applies transverse and
-    longitudinal diffusion, if selected.
+    the nucleus' trajectory to the pad plane and applies transverse diffusion, if selected.
 
     Parameters
     ----------
@@ -321,11 +295,10 @@ def find_pads_hit(
 
     Returns
     -------
-    np.ndarray
-        Array of all AT-TPC traces with hit counter appended
-        to the trace of each pad.
+    numpy.ndarray
+        An Nx3 array representing the simplified point cloud
     """
-    # At least point transport
+    # Point transport
     if sigma_t == 0.0:
         points: np.ndarray = point_transport(
             pad_grid,
@@ -335,7 +308,7 @@ def find_pads_hit(
             electrons,
         )
 
-    # At least transverve diffusion transport
+    # Transverse diffusion transport
     else:
         points: np.ndarray = transverse_transport(
             pad_grid,
@@ -361,7 +334,7 @@ def transport_track(
 ):
     """
     High-level function that transports each point in a nucleus' trajectory
-    to the pad plane, applying diffusion if specified.
+    to the pad plane, applying transverse diffusion if specified.
 
     Parameters
     ----------
@@ -404,6 +377,7 @@ def transport_track(
             point_electrons,
             sigma_t,
         )
-        points = np.vstack((points, new_points))
+        if len(new_points) > 0:
+            points = np.vstack((points, new_points))
 
     return points

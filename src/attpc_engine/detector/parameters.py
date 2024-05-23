@@ -31,7 +31,7 @@ class DetectorParams:
         a combination of a micromegas and THGEM. Unitless.
     gas_target: spyral_utils.nuclear.GasTarget
         Target gas in the AT-TPC
-    diffusion: tuple[float, float]
+    diffusion: float
         Transverse diffusion coefficient of electrons in the target gas.
         In units of Volts
     fano_factor: float
