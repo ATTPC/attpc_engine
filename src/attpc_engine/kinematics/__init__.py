@@ -1,3 +1,5 @@
+"""This is the parent module for the kinematics phase space"""
+
 from .pipeline import (
     KinematicsPipeline,
     run_kinematics_pipeline,

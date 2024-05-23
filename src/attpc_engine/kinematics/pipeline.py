@@ -43,8 +43,7 @@ class PipelineError(Exception):
 class KinematicsPipeline:
     """The pipeline for generating kinematics data
 
-    The pipeline handles the random sampling using the
-    Python standard library random number generator (Mersenne-Twister)
+    The pipeline handles the random sampling using a numpy Generator
 
     Parameters
     ----------
