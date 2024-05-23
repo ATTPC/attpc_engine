@@ -34,6 +34,19 @@ class KinematicsTargetMaterial:
     rho_sigma: float
 
 
+@dataclass
+class Sample:
+    """Sampled data"""
+
+    beam_energy: float
+    excitations: list[float]
+    reaction_theta: float
+    reaction_phi: float
+    vertex: np.ndarray
+    decay_thetas: list[float]
+    decay_phis: list[float]
+
+
 class PipelineError(Exception):
     """Pipeline error class"""
 
@@ -142,24 +155,40 @@ class KinematicsPipeline:
             chain += f", {str(decay)}"
         return chain
 
-    def run(self) -> tuple[np.ndarray, np.ndarray]:
-        """The method simulate an event
+    def check_excitations_allowed(
+        self, projectile_energy: float, excitations: list[float]
+    ) -> bool:
+        """Check if the total reaction system has enough energy to occur
+
+        Parameters
+        ----------
+        projectile_energy: float
+            The beam energy in MeV
+        excitations: list[float]
+            The excitations for each step in MeV
 
         Returns
         -------
-        numpy.ndarray
-            The reaction vertex as a 3-vector. The array is
-            [x,y,z], with each element in meters.
-        numpy.ndarray
-            An Nx4 array of the nuclei 4-vectors. Each unique nucleus
-            is a row in the array, and each row contains the px, py, pz, E.
+        bool
+            True if allowed, False otherwise
         """
+        Q = (
+            (self.reaction.projectile.mass + projectile_energy)
+            + self.reaction.target.mass
+            - (
+                self.reaction.ejectile.mass
+                + self.reaction.residual.mass
+                + excitations[0]
+            )
+        )
+        for idx, decay in enumerate(self.decays):
+            Q += -1.0 * (
+                decay.residual_1.mass + decay.residual_2.mass + excitations[idx + 1]
+            )
+        return Q >= 0.0
 
-        # First step (reaction)
+    def sample(self) -> Sample:
 
-        # Sample
-        ejectile_theta_cm = np.arccos(self.rng.uniform(-1.0, 1.0))
-        ejectile_phi_cm = self.rng.uniform(0.0, np.pi * 2.0)
         projectile_energy = self.beam_energy
         vertex = np.zeros(3)
         if self.target_material is not None:
@@ -182,74 +211,97 @@ class KinematicsPipeline:
                 )
             )
             projectile_energy = projectile_energy[0]  # Convert 1x1 array to float
-
-        # Sample an excitation, truncating the distribution based on
-        # energetically allowed values
-        allowed = False
-        resid_ex: float
-        while not allowed:
-            resid_ex = self.excitations[0].sample(self.rng)
-            allowed = self.reaction.is_excitation_allowed(projectile_energy, resid_ex)
-
-        # Calculate
-
-        # Primary reaction
-        rxn_result = self.reaction.calculate(
-            projectile_energy,  # type: ignore
-            ejectile_theta_cm,
-            ejectile_phi_cm,
-            resid_ex,
-        )
-        self.result[0] = np.array(
-            [rxn_result[0].px, rxn_result[0].py, rxn_result[0].pz, rxn_result[0].E]
-        )
-        self.result[1] = np.array(
-            [rxn_result[1].px, rxn_result[1].py, rxn_result[1].pz, rxn_result[1].E]
-        )
-        self.result[2] = np.array(
-            [rxn_result[2].px, rxn_result[2].py, rxn_result[2].pz, rxn_result[2].E]
-        )
-        self.result[3] = np.array(
-            [rxn_result[3].px, rxn_result[3].py, rxn_result[3].pz, rxn_result[3].E]
+        pi2 = np.pi * 2.0
+        return Sample(
+            beam_energy=projectile_energy,
+            excitations=[ex.sample(self.rng) for ex in self.excitations],
+            reaction_theta=np.arccos(self.rng.uniform(-1.0, 1.0)),
+            reaction_phi=self.rng.uniform(0.0, pi2),
+            vertex=vertex,
+            decay_thetas=[np.arccos(self.rng.uniform(-1.0, 1.0)) for _ in self.decays],
+            decay_phis=[self.rng.uniform(0.0, pi2) for _ in self.decays],
         )
 
-        # Do all the decay steps
-        prev_resid = rxn_result[3]
-        for idx, decay in enumerate(self.decays):
-            # Sample angles
-            resid_1_theta_cm = np.arccos(self.rng.uniform(-1.0, 1.0))
-            resid_1_phi_cm = self.rng.uniform(0.0, np.pi * 2.0)
-            # sample an excitation, truncating the distribution based
-            # on energetically allowed values
-            resid_2_ex: float
-            allowed = False
-            while not allowed:
-                resid_2_ex = self.excitations[idx].sample(self.rng)
-                allowed = decay.is_excitation_allowed(prev_resid, resid_2_ex)
+    def run(self) -> tuple[np.ndarray, np.ndarray]:
+        """The method simulate an event
 
-            # Calculate
-            decay_result = decay.calculate(
-                prev_resid, resid_1_theta_cm, resid_1_phi_cm, resid_2_ex
+        Returns
+        -------
+        numpy.ndarray
+            The reaction vertex as a 3-vector. The array is
+            [x,y,z], with each element in meters.
+        numpy.ndarray
+            An Nx4 array of the nuclei 4-vectors. Each unique nucleus
+            is a row in the array, and each row contains the px, py, pz, E.
+        """
+
+        while True:
+            sample = self.sample()
+
+            if not self.reaction.is_excitation_allowed(
+                sample.beam_energy, sample.excitations[0]
+            ):
+                continue
+
+            rxn_result = self.reaction.calculate(
+                sample.beam_energy,
+                sample.reaction_theta,
+                sample.reaction_phi,
+                sample.excitations[0],
             )
-            result_pos = idx * 2 + 4
-            self.result[result_pos] = np.array(
-                [
-                    decay_result[1].px,
-                    decay_result[1].py,
-                    decay_result[1].pz,
-                    decay_result[1].E,
-                ]
+
+            self.result[0] = np.array(
+                [rxn_result[0].px, rxn_result[0].py, rxn_result[0].pz, rxn_result[0].E]
             )
-            self.result[result_pos + 1] = np.array(
-                [
-                    decay_result[2].px,
-                    decay_result[2].py,
-                    decay_result[2].pz,
-                    decay_result[2].E,
-                ]
+            self.result[1] = np.array(
+                [rxn_result[1].px, rxn_result[1].py, rxn_result[1].pz, rxn_result[1].E]
             )
-            prev_resid = decay_result[2]
-        return (vertex, self.result)
+            self.result[2] = np.array(
+                [rxn_result[2].px, rxn_result[2].py, rxn_result[2].pz, rxn_result[2].E]
+            )
+            self.result[3] = np.array(
+                [rxn_result[3].px, rxn_result[3].py, rxn_result[3].pz, rxn_result[3].E]
+            )
+
+            prev_resid = rxn_result[3]
+            allowed = True
+            for idx, decay in enumerate(self.decays):
+                if not decay.is_excitation_allowed(
+                    prev_resid, sample.excitations[idx + 1]
+                ):
+                    allowed = False
+                    break
+
+                # Calculate
+                decay_result = decay.calculate(
+                    prev_resid,
+                    sample.decay_thetas[idx],
+                    sample.decay_phis[idx],
+                    sample.excitations[idx + 1],
+                )
+                result_pos = idx * 2 + 4
+                self.result[result_pos] = np.array(
+                    [
+                        decay_result[1].px,
+                        decay_result[1].py,
+                        decay_result[1].pz,
+                        decay_result[1].E,
+                    ]
+                )
+                self.result[result_pos + 1] = np.array(
+                    [
+                        decay_result[2].px,
+                        decay_result[2].py,
+                        decay_result[2].pz,
+                        decay_result[2].E,
+                    ]
+                )
+                prev_resid = decay_result[2]
+
+            if allowed:
+                break
+
+        return (sample.vertex, self.result)
 
     def get_proton_numbers(self) -> np.ndarray:
         """Get the array of proton numbers
