@@ -26,7 +26,7 @@ class SimEvent:
 
     Parameters
     ----------
-    kine: numpy.ndarray
+    kinematics: numpy.ndarray
         Nx4 array of four vectors of all N nuclei in the simulated event. From first
         to last column are px, py, pz, E.
     vertex: numpy.ndarray

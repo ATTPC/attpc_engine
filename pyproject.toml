@@ -32,4 +32,6 @@ format = [
 ]
 docs = [
     "mkdocs-material>=9.5.17",
+    "mkdocstrings>=0.25.1",
+    "mkdocstrings-python>=1.10.3",
 ]

@@ -108,8 +108,8 @@ def position_to_index(
 
     Parameters
     ----------
-    params: Parameters
-        All parameters for simulation.
+    grid_edges: numpy.ndarray
+        The edges of the pad grid
     position: tuple[float, float]
         Position in (x, y) to find pad map index of.
 
@@ -162,12 +162,6 @@ def point_transport(
         (x,y) position of point being transported.
     electrons: int
         Number of electrons made at point being transported.
-    sigma_l: float
-        Standard deviation of longitudinal diffusion at point
-        being transported.
-    traces: np.ndarray
-        Array of all AT-TPC traces with hit counter appended
-        to the trace of each pad.
 
     Returns
     -------
@@ -227,9 +221,6 @@ def transverse_transport(
         Number of electrons made at point being transported.
     sigma_t: float
         Standard deviation of transverse diffusion at point
-        being transported.
-    sigma_l: float
-        Standard deviation of longitudinal diffusion at point
         being transported.
 
     Returns
@@ -326,9 +317,6 @@ def find_pads_hit(
         Number of electrons made at point being transported.
     sigma_t: float
         Standard deviation of transverse diffusion at point
-        being transported.
-    sigma_l: float
-        Standard deviation of longitudinal diffusion at point
         being transported.
 
     Returns
