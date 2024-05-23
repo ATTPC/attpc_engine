@@ -1,8 +1,3 @@
-import numpy as np
-import h5py as h5
-import math
-
-from tqdm import tqdm
 from .parameters import Config
 from .solver import (
     equation_of_motion,
@@ -11,45 +6,19 @@ from .solver import (
     backward_z_bound_condition,
     rho_bound_condition,
 )
-from scipy.integrate import solve_ivp
-from scipy.signal import fftconvolve
-from .transporter import make_traces, transport_track
-from spyral_utils.nuclear.target import GasTarget
-from random import normalvariate
-from ..constants import NUM_TB, E_CHARGE
+from .transporter import transport_track
+from .writer import SimulationWriter
+from .constants import NUM_TB
 from .. import nuclear_map
 
+import numpy as np
+import h5py as h5
+from tqdm import trange
+from scipy.integrate import solve_ivp
+from numpy.random import default_rng, Generator
 
-def get_response(config: Config) -> np.ndarray:
-    """
-    Theoretical response function of GET electronics provided by the
-    chip manufacturer. See https://doi.org/10.1016/j.nima.2016.09.018.
-
-    Parameters
-    ----------
-    params: Parameters
-        All parameters for simulation.
-
-    Returns
-    -------
-    np.ndarray
-        Returns 1xNUM_TB array of the response function evaluated
-        at each time bucket
-    """
-    response = np.zeros(NUM_TB)
-    for tb in range(NUM_TB):
-        c1 = (
-            4095 * E_CHARGE / config.electronics.amp_gain / 1e-15
-        )  # Should be 4096 or 4095?
-        c2 = tb / (
-            config.electronics.shaping_time * config.electronics.clock_freq * 0.001
-        )
-        response[tb] = c1 * math.exp(-3 * c2) * (c2**3) * math.sin(c2)
-
-    # Cannot have negative ADC values
-    response[response < 0] = 0
-
-    return response
+# Time steps to solve ODE at. Each step is 1e-10 s
+TIME_STEPS = np.linspace(0, 10e-7, 10001)
 
 
 class SimEvent:
@@ -57,63 +26,60 @@ class SimEvent:
 
     Parameters
     ----------
-    params: Parameters
-        All parameters for simulation.
+    kine: numpy.ndarray
+        Nx4 array of four vectors of all N nuclei in the simulated event. From first
+        to last column are px, py, pz, E.
+    vertex: numpy.ndarray
+        The reaction vertex position in meters. Given as a 3-array formated
+        [x,y,z].
+    proton_numbers: numpy.ndarray
+        Nx1 array of proton numbers of all nuclei from reaction and decays in the pipeline.
+    mass_numbers: numpy.ndarray
+        Nx1 array of mass numbers of all nuclei from reaction and decasy in the pipeline.
 
     Attributes
     ----------
-    kine: np.ndarray
-        Nx4 array of four vectors of all N nuclei in the simulated event. From first
-        to last column are px, py, pz, E.
-    distance: float
-        Linear distance the incoming nucleus travelled before it underwent a reaction.
-        The angle between the incoming particle and the detector is 0 degrees.
-    proton_numbers: np.ndarray
-        Nx1 array of proton numbers of all nuclei from reaction and decays in the pipeline.
-    mass_numbers: np.ndarray
-        Nx1 array of mass numbers of all nuclei from reaction and decasy in the pipeline.
     nuclei: list[SimParticle]
         Instance of SimParticle for each nuclei in the exit channel of the pipeline.
-    data: np.ndarray
-        AT-TPC data for the simulated event.
+
+    Methods
+    -------
+    digitize(config)
+        Transform the kinematics into point clouds
     """
 
     def __init__(
         self,
-        config: Config,
-        kine: np.ndarray,
-        distance: float,
+        kinematics: np.ndarray,
+        vertex: np.ndarray,
         proton_numbers: np.ndarray,
         mass_numbers: np.ndarray,
     ):
-        self.kine = kine
-        self.distance = distance
         self.nuclei: list[SimParticle] = []
 
         # Only simulate the nuclei in the exit channel
-        counter = 0
-        while counter < (kine.shape[0] - 1):
-            counter += 2
-            if counter > (kine.shape[0] - 1):
-                counter -= 1
-            if (
-                proton_numbers[counter] == 0
-            ):  # pycatima cannot do energy loss for neutrons!
+        # Pattern is:
+        # skip target, projectile, take ejectile
+        # then skip every other. Append last nucleus as well
+        total_nuclei = len(kinematics) - 1
+        for idx in range(2, total_nuclei, 2):
+            if proton_numbers[idx] == 0:
                 continue
             self.nuclei.append(
                 SimParticle(
-                    config,
-                    kine[counter],
-                    distance,
-                    proton_numbers[counter],
-                    mass_numbers[counter],
+                    kinematics[idx], vertex, proton_numbers[idx], mass_numbers[idx]
+                )
+            )
+        if proton_numbers[-1] != 0:
+            self.nuclei.append(
+                SimParticle(
+                    kinematics[-1], vertex, proton_numbers[-1], mass_numbers[-1]
                 )
             )
 
-        self.data = self.digitize(config)
+    def digitize(self, config: Config, rng: Generator) -> np.ndarray:
+        """Transform the kinematics into point clouds
 
-    def digitize(self, config: Config) -> np.ndarray:
-        """
         Digitizes the simulated event, converting the number of
         electrons detected on each pad to a signal in ADC units.
         The hardware ID of each pad is included to make the complete
@@ -121,37 +87,29 @@ class SimEvent:
 
         Parameters
         ----------
-        params: Parameters
-            All parameters for simulation.
+        config: Config
+            The simulation configuration
 
         Returns
         -------
-        np.ndarray
-            Returns a Nx(NUM_TB+5) array where each row is the
-            complete trace of one pad.
+        numpy.ndarray
+            An Nx3 array representing the point cloud. Each row is a point, with elements
+            [pad id, time bucket, electrons]
         """
         # Sum traces from all particles
-        traces: np.ndarray = self.nuclei[0].hits
-        for idx in range(1, len(self.nuclei)):
-            traces[:, 5:] += self.nuclei[idx].hits[:, 5:]
+        points: np.ndarray = np.empty((0, 3))
+        for nuc in self.nuclei:
+            new_points = nuc.generate_point_cloud(config, rng)
+            if len(new_points) != 0:
+                points = np.vstack((points, new_points))
 
-        # Remove traces without any hits
-        mask = traces[:, NUM_TB + 5] > 0
-        traces = traces[mask, : (NUM_TB + 5)]
+        # Remove dead points (no pad or electrons)
+        points = points[np.logical_and(points[:, 0] != -1.0, points[:, 1] != -1.0)]
 
-        # Cannot digitize event where no pads are hit
-        if traces.size == 0:
-            return None
+        # Remove points outside legal bounds in time
+        points = points[points[:, 1] < NUM_TB]
 
-        # Convolve traces with response function to get digitized traces
-        response: np.ndarray = np.tile(get_response(config), (traces.shape[0], 1))
-        digi_traces = fftconvolve(traces[:, 5:], response, mode="full", axes=(1,))
-        traces[:, 5:] = digi_traces[:, :NUM_TB]
-
-        # Set saturated pads to max ADC
-        traces[:, 5:][traces[:, 5:] > 4095] = 4095
-
-        return traces
+        return points
 
 
 class SimParticle:
@@ -160,11 +118,11 @@ class SimParticle:
 
     Parameters
     ----------
-    params: Parameters
-        All parameters for simulation.
-    distance: float
-        Linear distance the incoming nucleus travelled before it underwent a reaction.
-        The angle between the incoming particle and the detector is 0 degrees.
+    data: numpy.ndarray
+        Simulated four vector of nucleus from kinematics.
+    vertex: numpy.ndarray
+        The reaction vertex position in meters. Given as a 3-array formated
+        [x,y,z].
     proton_number: int
         Number of protons in nucleus
     mass_number: int
@@ -172,57 +130,51 @@ class SimParticle:
 
     Attributes
     ----------
-    data: np.ndarray
-        Simulated four vector of nucleus from pipeline.
+    data: numpy.ndarray
+        Simulated four vector of nucleus from kinematics.
     nucleus: spyral_utils.nuclear.NucleusData
         Data of the simulated nucleus
-    track: scipy.integrate.solve_ivp bunch object
-        Simulated track of nucleus in the gas target
-    electrons: np.ndarray
-        Array of electrons created at each point of
-        the nucleus' track.
+    vertex: numpy.ndarray
+        The reaction vertex position in meters. Given as a 3-array formated
+        [x,y,z].
 
     Methods
     ----------
-    generate_track -> scipy.integrate.solve_ivp bunch object
-        Solves EoM for track of nucleus in gas target
+    generate_track()
+        Solves EoM for this nucleus in the AT-TPC
 
     """
 
     def __init__(
         self,
-        config: Config,
         data: np.ndarray,
-        distance: float,
+        vertex: np.ndarray,
         proton_number: int,
         mass_number: int,
     ):
         self.data = data
         self.nucleus = nuclear_map.get_data(proton_number, mass_number)
-        self.distance = distance
-        self.hits = self.generate_hits(config)
+        self.vertex = vertex
 
-    def generate_track(self, config: Config, distance: float) -> np.ndarray:
-        """
-        Solve the EoM of the nucleus in the AT-TPC.
+    def generate_track(self, config: Config) -> np.ndarray:
+        """Solves EoM for this nucleus in the AT-TPC
+
+        Solution is evaluated over a fixed time interval.
 
         Parameters
         ----------
-        params: Parameters
-            All parameters for simulation.
-        distance: float
-            Linear distance the incoming nucleus travelled before it underwent a reaction.
-            The angle between the incoming particle and the detector is 0 degrees.
+        config: Config
+            The simulation configuration
 
         Returns
         -------
-        np.ndarray
-            6xN array where each row is a solution to one of the ODEs evaluated at
+        numpy.ndarray
+            Nx6 array where each row is a solution to one of the ODEs evaluated at
             the Nth time step.
         """
         # Find initial state of nucleus. (x, y, z, px, py, pz)
         initial_state: np.ndarray = np.zeros(6)
-        initial_state[2] = distance  # m
+        initial_state[:3] = self.vertex  # m
         initial_state[3:] = self.data[:3] / self.nucleus.mass  # unitless (gamma * beta)
 
         # Set ODE stop conditions. See SciPy solve_ivp docs
@@ -235,9 +187,6 @@ class SimParticle:
         rho_bound_condition.terminal = True
         rho_bound_condition.direction = 1.0
 
-        # Time steps to solve ODE at. Each step is 1e-10 s
-        time_steps = np.linspace(0, 10e-7, 10001)
-
         track = solve_ivp(
             equation_of_motion,
             (0.0, 1.0),  # Set upper time limit to 1 sec. This should never be reached
@@ -249,37 +198,40 @@ class SimParticle:
                 backward_z_bound_condition,
                 rho_bound_condition,
             ],
-            t_eval=time_steps,
+            t_eval=TIME_STEPS,
             args=(
-                config.detector.bfield * -1.0,
-                config.detector.efield * -1.0,
-                config.detector.gas_target,
+                config.det_params.bfield * -1.0,
+                config.det_params.efield * -1.0,
+                config.det_params.gas_target,
                 self.nucleus,
             ),
         )
 
-        return track.y
+        return track.y.T  # Return transpose to easily index by row
 
-    def generate_electrons(self, config: Config, track: np.ndarray) -> np.ndarray:
-        """
-        Find the number of electrons made at each point of the nucleus' track.
+    def generate_electrons(
+        self, config: Config, track: np.ndarray, rng: Generator
+    ) -> np.ndarray:
+        """Find the number of electrons made at each point of the nucleus' track.
 
         Parameters
         ----------
-        params: Parameters
-            All parameters for simulation.
-        track: np.ndarray
-            6xN array where each row is a solution to one of the ODEs evaluated at
+        config: Config
+            The simulation configuration
+        track: numpy.ndarray
+            Nx6 array where each row is a solution to one of the ODEs evaluated at
             the Nth time step.
+        rng: numpy.random.Generator
+            numpy random number generator
 
         Returns
         -------
-        tuple[np.ndarray, np.ndarray]
-            Element 0 is the 6xN track array and element 1 is a 1xN array
-            of electrons created at each point in the track.
+        numpy.ndarray
+            Returns an array of the number of electrons made at each
+            point in the trajectory
         """
         # Find energy of nucleus at each point of its track
-        gv = np.linalg.norm(track[3:], axis=0)
+        gv = np.linalg.norm(track[:, 3:], axis=1)
         beta = np.sqrt(gv**2.0 / (1.0 + gv**2.0))
         gamma = gv / beta
         energy = self.nucleus.mass * (gamma - 1.0)  # MeV
@@ -288,142 +240,124 @@ class SimParticle:
         electrons = np.zeros_like(energy)
         electrons[1:] = abs(np.diff(energy))  # Magnitude of energy lost
         electrons *= (
-            1e6 / config.detector.w_value
+            1.0e6 / config.det_params.w_value
         )  # Convert to eV to match units of W-value
 
         # Adjust number of electrons by Fano factor, can only have integer amount of electrons
         electrons = np.array(
             [
-                normalvariate(point, np.sqrt(config.detector.fano_factor * point))
+                rng.normal(point, np.sqrt(config.det_params.fano_factor * point))
                 for point in electrons
             ],
             dtype=np.int64,
         )
+        return electrons
 
-        # Remove points in trajectory that create less than 1 electron
-        mask = electrons >= 1
-        track = track[:, mask]
-        electrons = electrons[mask]
+    def generate_point_cloud(self, config: Config, rng: Generator) -> np.ndarray:
+        """Create the point cloud
 
-        return track, electrons
-
-    def z_to_tb(self, config: Config, track) -> np.ndarray:
-        """
-        Converts the z-coordinate of each point in the track
-        from physical space (m) to time (time buckets). Note that
-        the time buckets returned are floats and will be rounded
-        down to their correct bins when the electrons at each
-        point are transported to the pad plane.
-
-        Parameters
-        ----------
-        params: Parameters
-            All parameters for simulation.
-        track: np.ndarray
-            6xN array where each row is a solution to one of the ODEs evaluated at
-            the Nth time step.
-
-        Returns
-        -------
-        np.ndarray[floats]
-            1xN array of time buckets for N points in the track
-            that produce one or more electrons.
-        """
-        # Z coordinates of points in track
-        zpos: np.ndarray = track[2]
-
-        dv: float = config.calculate_drift_velocity()
-
-        # Convert from m to time buckets
-        zpos = np.abs(zpos - config.detector.length)  # z relative to the micromegas
-        zpos /= dv
-        zpos += config.electronics.micromegas_edge
-
-        return zpos
-
-    def generate_hits(self, config: Config) -> dict[int : np.ndarray]:
-        """
         Finds the pads hit by the electrons transported from each point
         of the nucleus' trajectory to the pad plane.
 
         Parameters
         ----------
-        params: Parameters
-            All parameters for simulation.
+        config: Config
+            The simulation configuration
 
         Returns
         -------
-        dict[int: np.ndarray[int]]
-            Dictionary of pads hit by transporting the liberated electrons.
-            The key is the pad number and the value is a 1xNUM_TB array
-            of the number of electrons detected at each time bucket.
+        numpy.ndarray
+            Array of points (point cloud)
         """
         # Generate nucleus' track and calculate the electrons made at each point
-        track: np.ndarray = self.generate_track(config, self.distance)
-        track, electrons = self.generate_electrons(config, track)
+        track = self.generate_track(config)
+        electrons = self.generate_electrons(config, track, rng)
+
+        # Remove points in trajectory that create less than 1 electron
+        mask = electrons >= 1
+        track = track[mask]
+        electrons = electrons[mask]
 
         # Apply gain factor from micropattern gas detectors
-        electrons *= config.detector.mpgd_gain
+        electrons *= config.det_params.mpgd_gain
 
         # Convert z position of trajectory to time buckets
-        track[2] = self.z_to_tb(config, track)
+        dv = config.drift_velocity
+        track[:, 2] = (
+            config.det_params.length - track[:, 2]
+        ) / dv + config.elec_params.micromegas_edge
 
-        traces: np.ndarray = make_traces(
-            config.hardwareid_map, len(config.hardwareid_map)
-        )
+        if config.pad_grid_edges is None or config.pad_grid is None:
+            raise ValueError("Pad grid is not loaded at SimParticle.generate_hits!")
 
-        traces = transport_track(
-            config.pad_map,
-            config.pads.map_params,
-            config.detector.diffusion,
-            config.detector.efield,
-            config.calculate_drift_velocity(),
+        points = transport_track(
+            config.pad_grid,
+            config.pad_grid_edges,
+            config.det_params.diffusion,
+            config.det_params.efield,
+            config.drift_velocity,
             track,
             electrons,
-            traces,
         )
+        # Wiggle point TBs over interval [0.0, 1.0). This simulates effect of converting
+        # the (in principle) int TBs to floats.
+        points[:, 1] += rng.uniform(low=0.0, high=1.0, size=len(points))
+        return points
 
-        return traces
 
+def run_simulation(
+    config: Config,
+    input_path: str,
+    writer: SimulationWriter,
+):
+    """Run the simulation
 
-def run_simulation(config: Config, input_path: str, output_path: str):
-    """
     Runs the AT-TPC simulation with the input parameters on the specified
     kinematic data hdf5 file generated by the kinematic pipeline.
 
     Parameters
      ----------
-    params: Parameters
-        All parameters for simulation.
+    config: Config
+        The simulation configuration
     input_path: str
         Path to HDF5 file containing kinematics
+    writer: SimulationWriter
+        An object which implements the SimulationWriter Protocol
     """
-
-    # Questions: should I  make input group, should i make header, should i include timestamps
-    # Construct output HDF5 file in AT-TPC format
-    output_file = h5.File(output_path, "w")
-    get_group = output_file.create_group("get")
-    meta_group = output_file.create_group("meta")
-
+    print("------- AT-TPC Simulation Engine -------")
+    print(f"Applying detector effects to kinematics from file: {input_path}")
     input = h5.File(input_path, "r")
     input_data_group = input["data"]
+    proton_numbers = input_data_group.attrs["proton_numbers"]
+    mass_numbers = input_data_group.attrs["mass_numbers"]
 
-    evt_counter: int = 0
-    for event in tqdm(range(input_data_group.attrs["n_events"])):
+    n_events: int = input_data_group.attrs["n_events"]  # type: ignore
+    print(f"Found {n_events} kinematics events.")
+    writer.set_number_of_events(n_events)
+    print(f"Output will be written to {writer.get_filename()}.")
+
+    rng = default_rng()
+
+    print("Start your engine!")
+    for event_number in trange(n_events):  # type: ignore
+        dataset: h5.Dataset = input_data_group[f"event_{event_number}"]  # type: ignore
         sim = SimEvent(
-            config,
-            input_data_group[f"event_{event}"],
-            input_data_group[f"event_{event}"].attrs["distance"],
-            input_data_group.attrs["proton_numbers"],
-            input_data_group.attrs["mass_numbers"],
+            dataset[:].copy(),  # type: ignore
+            np.array(
+                [
+                    dataset.attrs["vertex_x"],
+                    dataset.attrs["vertex_y"],
+                    dataset.attrs["vertex_z"],
+                ]
+            ),
+            proton_numbers,  # type: ignore
+            mass_numbers,  # type: ignore
         )
 
-        if sim.data is None:
+        cloud = sim.digitize(config, rng)
+        if len(cloud) == 0:
             continue
 
-        get_group.create_dataset(f"evt{evt_counter}_data", data=sim.data)
-        evt_counter += 1
-
-    # Make event range dataset
-    meta_data = np.array([0, 0, evt_counter, 0])
-    meta_group.create_dataset("meta", data=meta_data)
+        writer.write(cloud, config, event_number)
+    print("Done.")
+    print("----------------------------------------")

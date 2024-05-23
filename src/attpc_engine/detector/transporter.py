@@ -2,41 +2,12 @@ import math
 import numpy as np
 
 from numba import njit
-from .beam_pads import BEAM_PADS
-from ..constants import NUM_TB
+from .beam_pads import BEAM_PADS_ARRAY
 
 STEPS = 10
 
 
-@njit(cache=True)
-def make_traces(hardwareid_map, num_pads) -> np.ndarray:
-    """
-    Makes the full array of traces for each AT-TPC pad with an extra column
-    for counting if that pad received a hit. The array is Nx(NUM_TB+6) and each row
-    has the signature (CoBo, AsAd, AGET, AGET Channel, Pad, tb 1, tb 2, ...,
-    tb NUM_TB, Hit Counter) where N is the number of pads.
-
-    Parameters
-    ----------
-    hardwareid_map: numba.typed.Dict[int64: np.ndarray]
-        Dictionary mapping pad number to hardware ID.
-    num_pads: int
-        Number of pads on pad plane.
-
-    Returns
-    -------
-    np.ndarray
-        Empty array of all AT-TPC traces with hit counter appended
-        to the trace of each pad.
-    """
-    results = np.zeros((num_pads, NUM_TB + 6), dtype=np.int64)
-    for pad in range(num_pads):
-        results[pad, :5] = hardwareid_map[pad]
-
-    return results
-
-
-@njit(cache=True)
+@njit
 def normal_pdf(x: float, mu: float, sigma: float) -> float:
     """
     Equation of PDF corresponding to a 1D normal distribution.
@@ -62,7 +33,7 @@ def normal_pdf(x: float, mu: float, sigma: float) -> float:
     return c1 * math.exp(c2)
 
 
-@njit(cache=True)
+@njit
 def bivariate_normal_pdf(
     point: tuple[float, float], mu: tuple[float, float], sigma: float
 ) -> float:
@@ -94,7 +65,7 @@ def bivariate_normal_pdf(
     return c1 * math.exp(c2)
 
 
-@njit(cache=True)
+@njit
 def meshgrid(xarr: np.ndarray, yarr: np.ndarray) -> np.ndarray:
     """
     Creates a rectangular (x, y) grid from the input arrays and
@@ -127,10 +98,10 @@ def meshgrid(xarr: np.ndarray, yarr: np.ndarray) -> np.ndarray:
     return grid
 
 
-@njit(cache=True)
+@njit
 def position_to_index(
-    map_params: tuple[float, float, float], position: tuple[float, float]
-) -> tuple[float, float]:
+    grid_edges: np.ndarray, position: tuple[float, float]
+) -> tuple[int, int]:
     """
     Given an input position in (x, y), outputs the index on the pad map
     corresponding to that position.
@@ -151,9 +122,9 @@ def position_to_index(
     x: float = position[0] * 1000.0
     y: float = position[1] * 1000.0
 
-    low_edge: float = map_params[0]
-    high_edge: float = map_params[1]
-    bin_size: float = map_params[2]
+    low_edge: float = grid_edges[0]
+    high_edge: float = grid_edges[1]
+    bin_size: float = grid_edges[2]
 
     # Check if position is off pad plane. Return impossible index (for Numba)
     if (abs(math.floor(x)) > high_edge) or (abs(math.floor(y)) > high_edge):
@@ -165,16 +136,13 @@ def position_to_index(
     return (x_idx, y_idx)
 
 
-@njit(cache=True)
+@njit
 def point_transport(
-    pad_map: np.ndarray,
-    map_params: tuple[float, float, float],
+    pad_grid: np.ndarray,
+    grid_edges: np.ndarray,
     time: float,
     center: tuple[float, float],
     electrons: int,
-    sigma_l: float,
-    traces: np.ndarray,
-    beam_pads: np.ndarray,
 ) -> np.ndarray:
     """
     Transports all electrons created at a point in a simulated nucleus' track
@@ -183,12 +151,11 @@ def point_transport(
 
     Parameters
     ----------
-    pad_map: np.ndarray
-        LUT of pads.
-    map_params: tuple[float, float, float] (m, m, m)
-        LUT parameters. First element is the low edge of the
-        grid, second element is the high edge, and the third
-        element is the size of each pixel in the map.
+    pad_grid: numpy.ndarray
+        Grid of pad id for a given index, where index is calculated from x-y position
+    grid_edges: numpy.ndarray
+        Edges of the pad grid in mm, as well as the step size of the grid in mm
+        Allows conversion of position to grid index. 3 element array [low_edge, hi_edge, step]
     time: float
         Time of point being transported.
     center: tuple[float, float]
@@ -201,8 +168,6 @@ def point_transport(
     traces: np.ndarray
         Array of all AT-TPC traces with hit counter appended
         to the trace of each pad.
-    beam_pads: np.ndarray
-        Pad numbers of pads in beam region.
 
     Returns
     -------
@@ -211,36 +176,30 @@ def point_transport(
         to the trace of each pad.
     """
     # Find pad number of hit pad, if it exists
-    index: tuple[int, int] = position_to_index(map_params, center)
-    if index == (-1, -1):
-        return traces
-    pad: int = pad_map[index[0], index[1]]
+    point = np.full((1, 4), -1.0)
+    index_x, index_y = position_to_index(grid_edges, center)
+    if index_x == -1 or index_y == -1:
+        return point
+    pad = pad_grid[index_x, index_y]
 
     # Ensure electron hits pad plane and hits a non-beam pad
-    if pad != -1 and pad not in beam_pads:
-        signal = np.zeros(NUM_TB + 1, dtype=np.int64)
-        signal[int(time)] = electrons
-        signal[NUM_TB] = 1  # Record that this pad was hit
-
-        if sigma_l != 0:
-            signal = add_longitudinal(signal, time, electrons, sigma_l)
-
-        traces[pad, 5:] += signal
-
-    return traces
+    if pad != -1 and pad not in BEAM_PADS_ARRAY:
+        point[0, 0] = pad
+        point[0, 1] = time
+        point[0, 2] = electrons  # for the purposes of simulation charge = integral
+        return point
+    else:
+        return np.empty((0, 4), float)
 
 
-@njit(cache=True)
+@njit
 def transverse_transport(
-    pad_map: np.ndarray,
-    map_params: tuple[float, float, float],
+    pad_grid: np.ndarray,
+    grid_edges: np.ndarray,
     time: float,
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-    sigma_l: float,
-    traces: np.ndarray,
-    beam_pads: list[int],
 ) -> np.ndarray:
     """
     Transports all electrons created at a point in a simulated nucleus'
@@ -255,12 +214,11 @@ def transverse_transport(
 
     Parameters
     ----------
-    pad_map: np.ndarray
-        LUT of pads.
-    map_params: tuple[float, float, float] (m, m, m)
-        LUT parameters. First element is the low edge of the
-        grid, second element is the high edge, and the third
-        element is the size of each pixel in the map.
+    pad_grid: numpy.ndarray
+        Grid of pad id for a given index, where index is calculated from x-y position
+    grid_edges: numpy.ndarray
+        Edges of the pad grid in mm, as well as the step size of the grid in mm
+        Allows conversion of position to grid index. 3 element array [low_edge, hi_edge, step]
     time: float
         Time of point being transported.
     center: tuple[float, float]
@@ -273,11 +231,6 @@ def transverse_transport(
     sigma_l: float
         Standard deviation of longitudinal diffusion at point
         being transported.
-    traces: np.ndarray
-        Array of all AT-TPC traces with hit counter appended
-        to the trace of each pad.
-    beam_pads: np.ndarray
-        Pad numbers of pads in beam region.
 
     Returns
     -------
@@ -297,17 +250,25 @@ def transverse_transport(
     step_sizey: float = 2 * 3 * sigma_t / (STEPS - 1)
     mesh = meshgrid(xsteps, ysteps)
 
-    for pixel in mesh:
+    # Point per mesh val
+    points = np.full((len(mesh), 3), -1.0)
+    # No pixels in mesh
+    if len(points) == 0:
+        return points
+
+    pads = np.full(len(mesh), -1, dtype=int)
+
+    for idx, pixel in enumerate(mesh):
         # Find pad number of hit pad, if it exists
-        index: tuple[int, int] = position_to_index(map_params, pixel)
-        if index == (-1, -1):
+        index_x, index_y = position_to_index(grid_edges, pixel)
+        if index_x == -1 or index_y == -1:
             continue
-        pad: int = pad_map[index[0], index[1]]
+        pad: int = pad_grid[index_x, index_y]
+        pads[idx] = pad
+        points[idx, 0] = pad
 
         # Ensure electron hits pad plane and hits a non-beam pad
-        if pad != -1 and pad not in beam_pads:
-            signal = np.zeros(NUM_TB + 1, dtype=np.int64)
-            signal[NUM_TB] = 1  # Record that this pad was hit
+        if pad != -1 and pad not in BEAM_PADS_ARRAY:
             pixel_electrons = int(
                 (
                     bivariate_normal_pdf(pixel, center, sigma_t)
@@ -315,83 +276,35 @@ def transverse_transport(
                     * electrons
                 )
             )
-            signal[int(time)] = pixel_electrons
+            points[idx, 1] = time
+            points[idx, 2] = pixel_electrons
 
-            if sigma_l != 0:
-                signal = add_longitudinal(signal, time, pixel_electrons, sigma_l)
+    mask = np.logical_and(points[:, 0] != -1.0, points[:, 1] != -1)
+    points = points[mask]
+    pads = pads[mask]
+    if len(points) == 0:
+        return points
 
-            traces[pad, 5:] += signal
+    # Combine points that lie within the same pad for this time t
+    unique_pads = np.unique(pads)
+    downsample = np.full((len(unique_pads), 3), -1.0)
+    for idx, pad in enumerate(unique_pads):
+        subpoints = points[points[:, 0] == pad]
+        downsample[idx, 0] = pad
+        downsample[idx, 1] = subpoints[:, 1].mean()
+        downsample[idx, 2] = subpoints[:, 2].sum()
 
-    return traces
-
-
-@njit(cache=True)
-def add_longitudinal(
-    signal: np.ndarray, time: float, electrons: int, sigma_l: float
-) -> np.ndarray:
-    """
-    Applies longitudinal diffusion to electrons after they have been transported
-    to the pad plane, hence the diffusion is applied on the time of arrival and not
-    in physical space along the z direction. Similar to the transverse_transport function,
-    a 1D mesh is created from -3 sigma to 3 sigma in the time bucket dimension. The
-    number of steps is controlled by the STEPS parameter at the top of this file.
-    Note, that because we specify only the number of steps this means that the step size
-    varies from point to point in a trajectory. Each step in the mesh has a number of
-    electrons in it calculated from the normal distribution PDF.
-
-    Parameters
-    ----------
-    signal: np.ndarray
-        1x(NUM_TB+1) array that corresponds to the time buckets of one pad.
-        An extra column is tacked on the end to record that the pad
-        received a hit.
-    time: float
-        Time of point being transported.
-    electrons: int
-        Number of electrons made at point being transported.
-    sigma_l: float
-        Standard deviation of longitudinal diffusion at point being transported.
-
-    Returns
-    -------
-    np.ndarray
-        1x(NUM_TB+1) array that corresponds to the time buckets of one pad with
-        longitudinal diffusion applied. An extra column is tacked on the end to
-        record that the pad received a hit.
-    """
-    centertb: float = time
-
-    # Create time buckets to diffuse over
-    tblims = (centertb - 3 * sigma_l, centertb + 3 * sigma_l)
-    tbsteps = np.linspace(*tblims, STEPS)
-    step_sizetb: float = 2 * 3 * sigma_l / (STEPS - 1)
-
-    # Ensure diffusion is within allowed time buckets
-    tbsteps = tbsteps[(0 <= tbsteps) & (tbsteps < NUM_TB)]
-
-    # Remove electrons in preparation for diffusion
-    signal[int(time)] = 0
-
-    # Do longitudinal diffusion
-    for step in tbsteps:
-        signal[int(step)] += int(
-            normal_pdf(step, centertb, sigma_l) * step_sizetb * electrons
-        )
-
-    return signal
+    return downsample
 
 
-@njit(cache=True)
+@njit
 def find_pads_hit(
-    pad_map: np.ndarray,
-    map_params: tuple[float, float, float],
+    pad_grid: np.ndarray,
+    grid_edges: np.ndarray,
     time: float,
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-    sigma_l: float,
-    traces: np.ndarray,
-    beam_pads: list[int],
 ) -> np.ndarray:
     """
     Finds the pads hit by transporting the electrons created at a point in
@@ -400,12 +313,11 @@ def find_pads_hit(
 
     Parameters
     ----------
-    pad_map: np.ndarray
-        LUT of pads.
-    map_params: tuple[float, float, float] (m, m, m)
-        LUT parameters. First element is the low edge of the
-        grid, second element is the high edge, and the third
-        element is the size of each pixel in the map.
+    pad_grid: numpy.ndarray
+        Grid of pad id for a given index, where index is calculated from x-y position
+    grid_edges: numpy.ndarray
+        Edges of the pad grid in mm, as well as the step size of the grid in mm
+        Allows conversion of position to grid index. 3 element array [low_edge, hi_edge, step]
     time: float
         Time of point being transported.
     center: tuple[float, float]
@@ -418,11 +330,6 @@ def find_pads_hit(
     sigma_l: float
         Standard deviation of longitudinal diffusion at point
         being transported.
-    traces: np.ndarray
-        Array of all AT-TPC traces with hit counter appended
-        to the trace of each pad.
-    beam_pads: np.ndarray
-        Pad numbers of pads in beam region.
 
     Returns
     -------
@@ -432,45 +339,37 @@ def find_pads_hit(
     """
     # At least point transport
     if sigma_t == 0.0:
-        traces: np.ndarray = point_transport(
-            pad_map,
-            map_params,
+        points: np.ndarray = point_transport(
+            pad_grid,
+            grid_edges,
             time,
             center,
             electrons,
-            sigma_l,
-            traces,
-            beam_pads,
         )
 
     # At least transverve diffusion transport
-    elif sigma_t != 0.0:
-        traces: np.ndarray = transverse_transport(
-            pad_map,
-            map_params,
+    else:
+        points: np.ndarray = transverse_transport(
+            pad_grid,
+            grid_edges,
             time,
             center,
             electrons,
             sigma_t,
-            sigma_l,
-            traces,
-            beam_pads,
         )
 
-    return traces
+    return points
 
 
-@njit(cache=True)
+@njit
 def transport_track(
-    pad_map: np.ndarray,
-    map_params: tuple[float, float, float],
-    diffusion: tuple[float, float],
+    pad_grid: np.ndarray,
+    grid_edges: np.ndarray,
+    diffusion: float,
     efield: float,
     dv: float,
     track: np.ndarray,
     electrons: np.ndarray,
-    empty_traces: np.ndarray,
-    beam_pads: list[int] = np.array(BEAM_PADS),
 ):
     """
     High-level function that transports each point in a nucleus' trajectory
@@ -478,59 +377,45 @@ def transport_track(
 
     Parameters
     ----------
-    pad_map: np.ndarray
-        LUT of pads.
-    map_params: tuple[float, float, float] (m, m, m)
-        LUT parameters. First element is the low edge of the
-        grid, second element is the high edge, and the third
-        element is the size of each pixel in the map.
-    diffusion: tuple[float, float] (V, V)
-        Diffusion coefficients of electrons in the target gas. The
-        first element is the transverse coefficient and the second
-        is the longitudinal coefficient.
-    efield: float (V / m)
+    pad_grid: numpy.ndarray
+        Grid of pad id for a given index, where index is calculated from x-y position
+    grid_edges: numpy.ndarray
+        Edges of the pad grid in mm, as well as the step size of the grid in mm
+        Allows conversion of position to grid index. 3 element array [low_edge, hi_edge, step]
+    diffusion: float
+        Transverse iffusion coefficient of electrons in the target gas. Units of V
+    efield: float
         Magnitude of the electric field. The electric field is
         assumed to only have one component in the +z direction
-        parallel to the incoming beam.
-    dv: float (m / time bucket)
-        Electron drift velocity.
+        parallel to the incoming beam. Units of V/m
+    dv: float
+        Electron drift velocity. Units of m/TimeBucket
     track: np.ndarray
-        6xN array where each row is a solution to one of the ODEs evaluated at
+        Nx6 array where each row is a solution to one of the ODEs evaluated at
         the Nth time step.
     electrons: np.ndarray
         1xN array of electrons created each time step (point) of the trajectory.
-    traces: np.ndarray
-        Array of all AT-TPC traces with hit counter appended
-        to the trace of each pad.
-    beam_pads: np.ndarray
-        Pad numbers of pads in beam region.
 
     Returns
     -------
-    np.ndarray
-        Array of all AT-TPC traces with hit counter appended
-        to the trace of each pad.
+    numpy.ndarray
+        An Nx3 array representing the simplified point cloud
     """
-    sigma_t: np.ndarray = np.sqrt(2 * diffusion[0] * dv * track[2] / efield)  # in m
-    sigma_l: np.ndarray = np.sqrt(
-        2 * diffusion[1] * track[2] / dv / efield
-    )  # in time buckets
 
-    traces = empty_traces
-    for idx in range(track.shape[1]):
-        time = track[2, idx]
-        center = (track[0, idx], track[1, idx])
+    points = np.empty((0, 3))
+    for idx, row in enumerate(track):
+        time = row[2]
+        center = (row[0], row[1])
         point_electrons = electrons[idx]
-        traces = find_pads_hit(
-            pad_map,
-            map_params,
+        sigma_t = np.sqrt(2.0 * diffusion * dv * time / efield)
+        new_points = find_pads_hit(
+            pad_grid,
+            grid_edges,
             time,
             center,
             point_electrons,
-            sigma_t[idx],
-            sigma_l[idx],
-            traces,
-            beam_pads,
+            sigma_t,
         )
+        points = np.vstack((points, new_points))
 
-    return traces
+    return points

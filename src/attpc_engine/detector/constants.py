@@ -6,15 +6,15 @@ Some of these are just short aliases to scipy constants to avoid long keystrings
 Attributes
 ----------
 NUM_TB: int
-    For the GET system, 512
+    Number of time buckets (samples) for the GET system
 MEV_2_JOULE: float
-    scipy alias, J/MeV 
+    Convert MeV to Joules
 MEV_2_KG: float
-    scipy alias, kg/MeV/c^2
+    Convert MeV/c^2 to kilograms
 C: float
-    scipy alias, speed_of_light m/s
+    speed_of_light in m/s
 E_CHARGE: float
-    scipy alias, elementary_charge in Coulombs
+    elementary_charge in Coulombs
 """
 
 from scipy.constants import physical_constants

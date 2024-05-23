@@ -1,42 +1,13 @@
 from .reaction import Reaction, Decay
+from .excitation import ExciationDistribution
 
 from spyral_utils.nuclear.target import GasTarget
 import numpy as np
 import h5py as h5
-from random import uniform, normalvariate
 from dataclasses import dataclass
 from pathlib import Path
-
-
-@dataclass
-class Excitation:
-    """Represents the sampling parameters for an excitation
-
-    Attributes
-    ----------
-    centroid: float
-        The state mean/centroid value in MeV
-    width: float
-        The state FWHM value in MeV
-
-    Methods
-    -------
-    sigma()
-        Calculates the standard deviation from the FWHM assuming a normal distribution
-    """
-
-    centroid: float = 0.0
-    width: float = 0.0  # FWHM
-
-    def sigma(self) -> float:
-        """Calculates the standard deviation from the FWHM assuming a normal distribution
-
-        Returns
-        -------
-        float
-            The standard deviation
-        """
-        return self.width / 2.355
+from numpy.random import default_rng
+from tqdm import trange
 
 
 @dataclass
@@ -47,16 +18,20 @@ class KinematicsTargetMaterial:
     ----------
     material: GasTarget
         The target material
-    min_distance: float
-        The minimum edge for sampling a beam distance
-    max_distance: float
-        The maximum edge for sampling a beam distance
+    z_range: tuple[float, float]
+        The range of reaction verticies in the material. First value
+        is the minimum, second value is the maximum, both in units of meters.
+        The z_range is also used to sample beam energies within the target volume.
+    rho_sigma: float
+        The standard deviation of a normal distribution centered at 0.0 used to sample
+        the reaction vertex &rho; in cylindrical coordinates. The distribution in
+        cylindrical &theta; is assumed to be uniform.
 
     """
 
     material: GasTarget
-    min_distance: float
-    max_distance: float
+    z_range: tuple[float, float]
+    rho_sigma: float
 
 
 class PipelineError(Exception):
@@ -104,7 +79,7 @@ class KinematicsPipeline:
     def __init__(
         self,
         steps: list[Reaction | Decay],
-        excitations: list[Excitation],
+        excitations: list[ExciationDistribution],
         beam_energy: float,
         target_material: KinematicsTargetMaterial | None = None,
     ):
@@ -121,6 +96,7 @@ class KinematicsPipeline:
         self.reaction: Reaction = steps[0]
         self.decays: list[Decay] = []
         self.excitations = excitations
+        self.rng = default_rng()
 
         # Analyze pipeline for errors
         for idx in range(1, len(steps)):
@@ -167,15 +143,14 @@ class KinematicsPipeline:
             chain += f", {str(decay)}"
         return chain
 
-    def run(self) -> tuple[float, np.ndarray]:
+    def run(self) -> tuple[np.ndarray, np.ndarray]:
         """The method simulate an event
 
         Returns
         -------
-        float
-            The distance within the gas target that this
-            reaction occured. If there is no gas target,
-            the distance is 0.0
+        numpy.ndarray
+            The reaction vertex as a 3-vector. The array is
+            [x,y,z], with each element in meters.
         numpy.ndarray
             An Nx4 array of the nuclei 4-vectors. Each unique nucleus
             is a row in the array, and each row contains the px, py, pz, E.
@@ -184,28 +159,42 @@ class KinematicsPipeline:
         # First step (reaction)
 
         # Sample
-        ejectile_theta_cm = np.arccos(uniform(-1.0, 1.0))
-        ejectile_phi_cm = uniform(0.0, np.pi * 2.0)
+        ejectile_theta_cm = np.arccos(self.rng.uniform(-1.0, 1.0))
+        ejectile_phi_cm = self.rng.uniform(0.0, np.pi * 2.0)
         projectile_energy = self.beam_energy
-        distance = 0.0
+        vertex = np.zeros(3)
         if self.target_material is not None:
-            distance = uniform(
-                self.target_material.min_distance,
-                self.target_material.max_distance,
+            rho = np.abs(
+                self.rng.normal(0.0, self.target_material.rho_sigma)
+            )  # only need positive half of the distribution
+            theta = self.rng.uniform(0.0, 2.0 * np.pi)
+            vertex[0] = rho * np.cos(theta)
+            vertex[1] = rho * np.sin(theta)
+            vertex[2] = self.rng.uniform(
+                self.target_material.z_range[0],
+                self.target_material.z_range[1],
             )
             projectile_energy = (
                 projectile_energy
                 - self.target_material.material.get_energy_loss(
                     self.reaction.projectile,
                     projectile_energy,
-                    np.array([distance]),
+                    vertex[2:],
                 )
             )
             projectile_energy = projectile_energy[0]  # Convert 1x1 array to float
-        resid_ex = normalvariate(
-            self.excitations[0].centroid, self.excitations[0].sigma()
-        )
 
+        # Sample an excitation, truncating the distribution based on
+        # energetically allowed values
+        allowed = False
+        resid_ex: float
+        while not allowed:
+            resid_ex = self.excitations[0].sample(self.rng)
+            allowed = self.reaction.is_excitation_allowed(projectile_energy, resid_ex)
+
+        # Calculate
+
+        # Primary reaction
         rxn_result = self.reaction.calculate(
             projectile_energy,  # type: ignore
             ejectile_theta_cm,
@@ -228,11 +217,18 @@ class KinematicsPipeline:
         # Do all the decay steps
         prev_resid = rxn_result[3]
         for idx, decay in enumerate(self.decays):
-            resid_1_theta_cm = np.arccos(uniform(-1.0, 1.0))
-            resid_1_phi_cm = uniform(0.0, np.pi * 2.0)
-            resid_2_ex = normalvariate(
-                self.excitations[idx + 1].centroid, self.excitations[idx + 1].sigma()
-            )
+            # Sample angles
+            resid_1_theta_cm = np.arccos(self.rng.uniform(-1.0, 1.0))
+            resid_1_phi_cm = self.rng.uniform(0.0, np.pi * 2.0)
+            # sample an excitation, truncating the distribution based
+            # on energetically allowed values
+            resid_2_ex: float
+            allowed = False
+            while not allowed:
+                resid_2_ex = self.excitations[idx].sample(self.rng)
+                allowed = decay.is_excitation_allowed(prev_resid, resid_2_ex)
+
+            # Calculate
             decay_result = decay.calculate(
                 prev_resid, resid_1_theta_cm, resid_1_phi_cm, resid_2_ex
             )
@@ -254,7 +250,7 @@ class KinematicsPipeline:
                 ]
             )
             prev_resid = decay_result[2]
-        return (distance, self.result)
+        return (vertex, self.result)
 
     def get_proton_numbers(self) -> np.ndarray:
         """Get the array of proton numbers
@@ -310,6 +306,11 @@ def run_kinematics_pipeline(
         The path to which the data should be written (HDF5 format)
     """
 
+    print("------- AT-TPC Simulation Engine -------")
+    print(f"Sampling kinematics from reaction: {pipeline}")
+    print(f"Running for {n_events} samples.")
+    print(f"Output will be written to {output_path}.")
+
     output_file = h5.File(output_path, "w")
 
     data_group = output_file.create_group("data")
@@ -317,8 +318,13 @@ def run_kinematics_pipeline(
     data_group.attrs["proton_numbers"] = pipeline.get_proton_numbers()
     data_group.attrs["mass_numbers"] = pipeline.get_mass_numbers()
 
-    for event in range(0, n_events):
-        distance, result = pipeline.run()
+    print("Start your engine!")
+    for event in trange(0, n_events):
+        vertex, result = pipeline.run()
         data = data_group.create_dataset(f"event_{event}", data=result)  # type: ignore
-        data.attrs["distance"] = distance
+        data.attrs["vertex_x"] = vertex[0]
+        data.attrs["vertex_y"] = vertex[1]
+        data.attrs["vertex_z"] = vertex[2]
     output_file.close()
+    print("Done.")
+    print("----------------------------------------")

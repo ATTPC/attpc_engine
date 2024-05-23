@@ -1,41 +1,43 @@
 import numpy as np
-
 from dataclasses import dataclass
 from spyral_utils.nuclear.target import GasTarget
 from numba import int64
 from numba.typed import Dict
+from importlib import resources
+from pathlib import Path
+
+DEFAULT = "Default"
+DEFAULT_LEGACY = "DefaultLegacy"
 
 
 @dataclass
 class DetectorParams:
-    """
-    Data class containing all detector parameters for simulation.
+    """Dataclass containing all detector parameters for simulation.
 
     Attributes
     ----------
-    length: float (m)
-        Length of active volume of detector.
-    efield: float (V/m)
-        Magnitude of the electric field. The electric field is
+    length: float
+        Length of active volume of detector in meters
+    efield: float
+        Magnitude of the electric field in Volts/meter. The electric field is
         assumed to only have one component in the +z direction
         parallel to the incoming beam.
-    bfield: float (T)
-        Magnitude of the magnetic field. The magnetic field is
+    bfield: float
+        Magnitude of the magnetic field in Tesla. The magnetic field is
         assumed to only have one component in the +z direction
         parallel to the incoming beam.
-    mpgd_gain: int (unitless)
+    mpgd_gain: int
         Overall gain of all micropattern gas detectors used, e.g.
-        a combination of a micromegas and THGEM.
-    gas_target: GasTarget
-        Target gas in the AT-TPC.
-    diffusion: tuple(float, float) (V,V)
-        Diffusion coefficients of electrons in the target gas. The
-        first element is the transverse coefficient and the second
-        is the longitudinal coefficient.
-    fano_factor: float (unitless)
-        Fano factor of target gas.
-    w_value: float (eV)
-        W-value of gas. This is the average energy an ionizing
+        a combination of a micromegas and THGEM. Unitless.
+    gas_target: spyral_utils.nuclear.GasTarget
+        Target gas in the AT-TPC
+    diffusion: tuple[float, float]
+        Transverse diffusion coefficient of electrons in the target gas.
+        In units of Volts
+    fano_factor: float
+        Fano factor of target gas. Unitless.
+    w_value: float
+        W-value of gas in eV. This is the average energy an ionizing
         loses to create one electron-ion pair in the gas.
     """
 
@@ -44,28 +46,27 @@ class DetectorParams:
     bfield: float
     mpgd_gain: int
     gas_target: GasTarget
-    diffusion: tuple[float, float]
+    diffusion: float
     fano_factor: float
     w_value: float
 
 
 @dataclass
 class ElectronicsParams:
-    """
-    Data class containing all electronics parameters for simulation.
+    """Dataclass containing all electronics parameters for simulation.
 
     Attributes
     ----------
-    clock_freq: float (MHz)
-        Frequency of the GET clock.
-    amp_gain: int (fC)
-        Gain of GET amplifier.
-    shaping_time: int (ns)
-        Shaping time of GET.
-    micromegas_edge: int (timebucket)
-        The micromegas edge of the detector.
-    windows_edge: int (timebucket)
-        The windows edge of the detector.
+    clock_freq: float
+        Frequency of the GET clock in MHz.
+    amp_gain: int
+        Gain of GET amplifier in lsb/fC.
+    shaping_time: int
+        Shaping time of GET in ns.
+    micromegas_edge: int
+        The micromegas edge of the detector in time buckets.
+    windows_edge: int
+        The windows edge of the detector in time buckets.
     """
 
     clock_freq: float
@@ -73,34 +74,24 @@ class ElectronicsParams:
     shaping_time: int
     micromegas_edge: int
     windows_edge: int
+    adc_threshold: float
 
 
 @dataclass
 class PadParams:
-    """
-    Data class containing parameters related to the pads.
+    """Dataclass containing parameters related to the pads.
 
     Attributes
     ----------
-    pad_vertices: str
-        Path to location of file containing pads and their
-        vertices. Each row is formatted as (pad number, x1,
-        y1, x2, y2, ...,xn, yn) where x and y are the
-        respective coordinates of the nth vertex given in mm.
-    map: str
-        Path to pad map LUT.
-    map_params: tuple[float, float, float]
-        LUT parameters. First element is the low edge of the
-        grid, second element is the high edge, and the third
-        element is the size of each pixel in the map.
-    electronics: str
-        Path to electronics file containing the hardware ID
-        for each pad.
+    grid_path: Path | str
+        The path to the pad grid. Default is to use the packaged grid.
+    geometry_path: Path | str
+        The path to the pad center geometry. Default is to use
+        the packaged geometry (non-legacy).
     """
 
-    map: str
-    map_params: tuple[float, float, float]
-    electronics: str
+    grid_path: Path | str = DEFAULT
+    geometry_path: Path | str = DEFAULT
 
 
 class Config:
@@ -117,14 +108,6 @@ class Config:
     pads: PadParams
         Pad parameters
 
-    Methods
-    -------
-    calculate_drift_velocity()
-        Calculates the electron drift velocity.
-    load_pad_map()
-        Loads pad map LUT.
-    pad_to_hardwareid()
-        Makes a mapping from pad number to hardware ID.
     """
 
     def __init__(
@@ -133,67 +116,94 @@ class Config:
         electronics_params: ElectronicsParams,
         pad_params: PadParams,
     ):
-        self.detector = detector_params
-        self.electronics = electronics_params
-        self.pads = pad_params
-        self.pad_map = self.load_pad_map()
-        self.hardwareid_map = self.pad_to_hardwareid()
+        self.det_params = detector_params
+        self.elec_params = electronics_params
+        self.pad_params = pad_params
+        self.pad_grid: np.ndarray | None = None
+        self.pad_grid_edges: np.ndarray | None = None
+        self.pad_centers: np.ndarray | None = None
+        self.drift_velocity = 0.0
+        # Set everything
+        self.calculate_drift_velocity()
+        self.load_pad_grid()
+        self.load_pad_centers()
 
-    def calculate_drift_velocity(self) -> float:
-        """
-        Calculate drift velocity of electrons in the gas.
+    def calculate_drift_velocity(self) -> None:
+        """Calculate drift velocity of electrons in the gas.
 
         Returns
         -------
         float
             Electron drift velocity in m / time bucket
         """
-        dv: float = self.detector.length / (
-            self.electronics.windows_edge - self.electronics.micromegas_edge
-        )
-        return dv
-
-    def load_pad_map(self) -> np.ndarray:
-        """
-        Loads pad map LUT as an array.
-
-        Returns
-        -------
-        map: np.ndarray
-            Array indexed by physical position that
-            returns the pad number at that position.
-        """
-        map: np.ndarray = np.loadtxt(
-            self.pads.map, dtype=np.int64, delimiter=",", skiprows=0
+        self.drift_velocity = self.det_params.length / float(
+            self.elec_params.windows_edge - self.elec_params.micromegas_edge
         )
 
-        return map
+    def load_pad_grid(self) -> None:
+        """Load the pad grid from an npz file
 
-    def pad_to_hardwareid(self) -> dict[int : np.ndarray]:
+        The pad grid is a regular mesh which descretizes the pad plane into
+        a NxN matrix. Each element contains the pad ID at that location
+        in space. The grid file should also contain a 3 element array with
+        the grid edges in mm and the step size of the grid.
+
         """
-        Creates a dictionary mapping each pad number to its hardware ID.
+        if (
+            self.pad_params.grid_path == DEFAULT
+            or self.pad_params.grid_path == DEFAULT_LEGACY
+        ):
+            grid_handle = resources.files("attpc_engine.detector.data").joinpath(
+                "pad_grid.npz"
+            )
+            with resources.as_file(grid_handle) as grid_path:
+                data = np.load(grid_path)
+                self.pad_grid = data["grid"]
+                self.pad_grid_edges = data["edges"]
+        else:
+            data = np.load(self.pad_params.grid_path)
+            self.pad_grid = data["grid"]
+            self.pad_grid_edges = data["edges"]
 
-        Returns
-        -------
-        numba.typed.Dict[int: np.ndarray]
-            Numba typed dictionary mapping pad number to hardware ID. The hardware ID
-            is a 1x5 array with signature (CoBo, AsAd, Aget, Aget channel, Pad).
+    def load_pad_centers(self) -> None:
+        """Load the pad plane centers from a csv file
+
+        Load a csv file contains the x, y center position of each pad
+
         """
-        map = Dict.empty(int64, int64[:])
-        with open(self.pads.electronics, "r") as elecfile:
-            elecfile.readline()
-            lines = elecfile.readlines()
-            for line in lines:
-                entries = line.split(",")
-                hardware = np.array(
-                    (
-                        int(entries[0]),
-                        int(entries[1]),
-                        int(entries[2]),
-                        int(entries[3]),
-                        int(entries[4]),
-                    )
-                )
-                map[int(entries[4])] = hardware
-
-        return map
+        self.pad_centers = np.zeros((10240, 2))
+        if self.pad_params.geometry_path == DEFAULT:
+            geom_handle = resources.files("attpc_engine.detector.data").joinpath(
+                "padxy.csv"
+            )
+            with resources.as_file(geom_handle) as geopath:
+                geofile = open(geopath, "r")
+                geofile.readline()  # Remove header
+                lines = geofile.readlines()
+                for pad_number, line in enumerate(lines):
+                    entries = line.split(",")
+                    self.pad_centers[pad_number, 0] = float(entries[0])
+                    self.pad_centers[pad_number, 1] = float(entries[1])
+                geofile.close()
+        elif self.pad_params.geometry_path == DEFAULT:
+            geom_handle = resources.files("attpc_engine.detector.data").joinpath(
+                "padxy_legacy.csv"
+            )
+            with resources.as_file(geom_handle) as geopath:
+                geofile = open(geopath, "r")
+                geofile.readline()  # Remove header
+                lines = geofile.readlines()
+                for pad_number, line in enumerate(lines):
+                    entries = line.split(",")
+                    self.pad_centers[pad_number, 0] = float(entries[0])
+                    self.pad_centers[pad_number, 1] = float(entries[1])
+                geofile.close()
+        else:
+            with open(self.pad_params.geometry_path, "r") as geofile:
+                geofile.readline()  # Remove header
+                lines = geofile.readlines()
+                for pad_number, line in enumerate(lines):
+                    entries = line.split(",")
+                    self.pad_centers[pad_number, 0] = float(entries[0])
+                    self.pad_centers[pad_number, 1] = float(entries[1])
+                geofile.close()

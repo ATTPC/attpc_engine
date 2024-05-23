@@ -1,9 +1,10 @@
-from attpc_engine.kinematics.reaction import Reaction, Decay
-from attpc_engine.kinematics.pipeline import (
+from attpc_engine.kinematics import (
     KinematicsPipeline,
-    Excitation,
-    PipelineError,
+    ExcitationGaussian,
+    Reaction,
+    Decay,
 )
+from attpc_engine.kinematics.pipeline import PipelineError
 from attpc_engine import nuclear_map
 import numpy as np
 
@@ -46,17 +47,17 @@ def test_pipeline():
                 ),
                 Decay(
                     parent=nuclear_map.get_data(5, 9),
-                    residual_1=nuclear_map.get_data(2, 4),
+                    residual_1=nuclear_map.get_data(1, 1),
                 ),
             ],
-            [Excitation(16.8, 0.2), Excitation(0.0, 0.0)],
+            [ExcitationGaussian(16.8, 0.2), ExcitationGaussian(0.0, 0.5)],
             24.0,
         )
         distance, result = pipeline.run()
-        assert np.all(pipeline.get_proton_numbers() == np.array([5, 2, 2, 5, 2, 3]))
-        assert np.all(pipeline.get_mass_numbers() == np.array([10, 3, 4, 9, 4, 5]))
+        assert np.all(pipeline.get_proton_numbers() == np.array([5, 2, 2, 5, 1, 4]))
+        assert np.all(pipeline.get_mass_numbers() == np.array([10, 3, 4, 9, 1, 8]))
         assert len(result) == 6
-        assert distance == 0.0
+        assert np.all(distance == 0.0)
     except PipelineError as e:
         print(f"Failed with error {e}")
         assert False
@@ -77,7 +78,7 @@ def test_pipeline_length():
                     residual_1=nuclear_map.get_data(2, 4),
                 ),
             ],
-            [Excitation(16.8, 0.2)],
+            [ExcitationGaussian(16.8, 0.2)],
             24.0,
         )
         pipeline.run()
@@ -103,7 +104,7 @@ def test_pipeline_chain():
                     residual_1=nuclear_map.get_data(2, 4),
                 ),
             ],
-            [Excitation(16.8, 0.2), Excitation(0.0, 0.0)],
+            [ExcitationGaussian(16.8, 0.2), ExcitationGaussian(0.0, 0.0)],
             24.0,
         )
         pipeline.run()
@@ -129,7 +130,7 @@ def test_pipeline_order():
                     ejectile=nuclear_map.get_data(2, 4),
                 ),
             ],
-            [Excitation(16.8, 0.2), Excitation(0.0, 0.0)],
+            [ExcitationGaussian(16.8, 0.2), ExcitationGaussian(0.0, 0.0)],
             24.0,
         )
         result = pipeline.run()
