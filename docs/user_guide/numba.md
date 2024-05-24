@@ -1,0 +1,3 @@
+# Numba
+
+To make attpc_engine fast, we use [Numba](https://numba.readthedocs.io). Numba is a Just-In-Time compiler that supports a large set of Python and numpy. Whenever you see code in attpc_engine that has been decorated with `@njit` that means that we want Numba to JIT that code. JIT-ing can greatly improve performance of code operating on large datasets. However, there is some cost. Numba needs to be able to determine the type of data you're using (i.e. float, int, etc) and doesn't support many of the useful extensions and libraries in Python. So you have to use the JIT sparingly, only where there's a serious performance bottleneck. 
