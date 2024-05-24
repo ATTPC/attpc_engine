@@ -18,3 +18,19 @@ See [Converting to Dataframes](./user_guide/kinematics/index.md#converting-to-da
 ## How can make attpc_engine output data into a different format
 See **Put detector ref here**
 
+## How do I update my version of attpc_engine
+
+With your virtual environment active you can use any of
+
+```bash
+pip install attpc_engine --upgrade
+pip install attpc_engine -U
+```
+
+or to install a specific version use
+
+```bash
+pip install attpc_engine==x.x.x
+```
+and replace `x.x.x` with the specific version number to install.
+
