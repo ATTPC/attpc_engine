@@ -103,10 +103,10 @@ class SimEvent:
             if len(new_points) != 0:
                 points = np.vstack((points, new_points))
 
-        # Remove dead points (no pad or electrons)
-        points = points[np.logical_and(points[:, 0] != -1.0, points[:, 1] != -1.0)]
+        # Remove dead points (no pads hit)
+        points = points[points[:, 0] != -1.0]
 
-        # Remove points outside legal bounds in time
+        # Remove points outside legal bounds in time. TODO check if this is needed
         points = points[points[:, 1] < NUM_TB]
 
         return points
@@ -285,8 +285,7 @@ class SimParticle:
         # Apply gain factor from micropattern gas detectors
         electrons *= config.det_params.mpgd_gain
 
-        # This time bucket is exact. If we wiggle, we must int this first. Int te time going into transport_track?
-        # Convert z position of trajectory to time buckets
+        # Convert z position of trajectory to exact time buckets
         dv = config.drift_velocity
         track[:, 2] = (
             config.det_params.length - track[:, 2]
@@ -343,7 +342,18 @@ def run_simulation(
 
     rng = default_rng()
 
-    print("Start your engine!")
+    print("Go!")
+    # ASCII art edited from https://emojicombos.com/f1-car-text-art
+    print(
+        r"""
+            ⠀⢀⣀⣀⣀⠀⠀⠀⠀⢀⣀⣀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+            ⠀⢸⣿⣿⡿⢀⣠⣴⣾⣿⣿⣿⣿⣇⡀⠀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+            ⠀⢸⣿⣿⠟⢋⡙⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣿⡿⠓⡐⠒⢶⣤⣄⡀⠀⠀
+            ⠀⠸⠿⠇⢰⣿⣿⡆⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⣿⣿⡷⠈⣿⣿⣉⠁⠀
+            ⠀⠀⠀⠀⠀⠈⠉⠀⠈⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠀⠈⠉⠁⠀⠈⠉⠉⠀⠀
+        """
+    )
+
     for event_number in trange(n_events):  # type: ignore
         dataset: h5.Dataset = input_data_group[f"event_{event_number}"]  # type: ignore
         sim = SimEvent(

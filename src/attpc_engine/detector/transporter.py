@@ -151,11 +151,10 @@ def point_transport(
     # Ensure electron hits pad plane and hits a non-beam pad
     if pad != -1 and pad not in BEAM_PADS_ARRAY:
         point[0, 0] = pad
-        point[0, 1] = time
-        point[0, 2] = electrons  # for the purposes of simulation charge = integral
-        return point
-    else:
-        return np.empty((0, 3), float)
+        point[0, 1] = int(time)  # Convert from absolute time bucket to discretized
+        point[0, 2] = electrons
+
+    return point
 
 
 @njit
@@ -228,12 +227,9 @@ def transverse_transport(
             continue
         pad: int = pad_grid[index_x, index_y]
 
-        # why not put these two in the if condition which will get rid of the logical and
-        pads[idx] = pad
-        points[idx, 0] = pad
-
         # Ensure electron hits pad plane and hits a non-beam pad
         if pad != -1 and pad not in BEAM_PADS_ARRAY:
+            points[idx, 0] = pad
             pixel_electrons = int(
                 (
                     bivariate_normal_pdf(pixel, center, sigma_t)
@@ -241,23 +237,25 @@ def transverse_transport(
                     * electrons
                 )
             )
-            points[idx, 1] = time
+            points[idx, 1] = int(
+                time
+            )  # Convert from absolute time bucket to discretized
             points[idx, 2] = pixel_electrons
 
-    mask = np.logical_and(points[:, 0] != -1.0, points[:, 1] != -1)
-    points = points[mask]
-    pads = pads[mask]
+    points = points[points[:, 0] != -1.0]
 
     if len(points) == 0:
         return points
 
-    # Combine points that lie within the same pad for this time t
-    unique_pads = np.unique(pads)
+    # Combine points that lie within the same pad for this time
+    unique_pads = np.unique(points[:, 0])
     downsample = np.full((len(unique_pads), 3), -1.0)
     for idx, pad in enumerate(unique_pads):
         subpoints = points[points[:, 0] == pad]
         downsample[idx, 0] = pad
-        downsample[idx, 1] = time
+        downsample[idx, 1] = int(
+            time
+        )  # Convert from absolute time bucket to discretized
         downsample[idx, 2] = subpoints[:, 2].sum()
 
     return downsample

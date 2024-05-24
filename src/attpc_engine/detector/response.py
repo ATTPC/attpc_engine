@@ -53,5 +53,5 @@ def apply_response(response: np.ndarray, electrons: float) -> tuple[float, float
 
     """
     resp_sig = response * electrons
-    resp_sig[resp_sig > 4095] = 4095
+    resp_sig[resp_sig > 4095] = 4095  # Set saturated pads to max ADC
     return (resp_sig.max(), resp_sig.sum())
