@@ -28,6 +28,8 @@ $$
 
 where $\pmb{p}$ is the relativistic momentum, $\pmb{v}$ is the three velocity, $\pmb{E}$ is the electric field, and $\pmb{B}$ is the magnetic field. To prevent the ODE solver from calculating either very large or very small numbers, we actually divide both sides of this equation by the nucleus' rest mass and thus solve this differential equation for $\gamma \beta$. It is subject to the physical boundaries of the detector and the condition that the nucleus has more than 1 eV of kinetic energy.
 
-# Electron-ion pair creation
 
-ss
+
+# Electron creation
+
+The ODE solver return
