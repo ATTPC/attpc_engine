@@ -46,6 +46,10 @@ def convert_to_spyral(
         storage[idx, 6] = point[1]
         storage[idx, 7] = 1.0  # Idk we don't even really use this rn
 
+    if adc_threshold >= 4095:
+        raise ValueError(
+            "adc_threshold cannot be equal to or greater than the max GET ADC value!"
+        )
     return storage[storage[:, 3] > adc_threshold]
 
 
