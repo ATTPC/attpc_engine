@@ -36,13 +36,34 @@ class KinematicsTargetMaterial:
 
 @dataclass
 class Sample:
-    """Sampled data"""
+    """Complete set of sampled data for a pipeline
+
+    Attributes
+    ----------
+    beam_energy: float
+        Beam (projectile) energy in MeV
+    reaction_excitation: float
+        Exctation energy for reaction residual in MeV
+    reaction_theta: float
+        The reaction polar angle in radians
+    reaction_phi: float
+        The reaction azimuthal angle in radians
+    vertex: numpy.ndarray
+        The reaction vertex position in meters [x,y,z]
+    decay_excitations: list[float]
+        List of excitation energy for each decay residual in MeV
+    decay_thetas: list[float]
+        List of polar angle for each decay residual in radians
+    decay_phis: list[float]
+        List of azimuthal angle for each decay residual in radians
+    """
 
     beam_energy: float
-    excitations: list[float]
+    reaction_excitation: float
     reaction_theta: float
     reaction_phi: float
     vertex: np.ndarray
+    decay_excitations: list[float]
     decay_thetas: list[float]
     decay_phis: list[float]
 
@@ -71,6 +92,14 @@ class KinematicsPipeline:
         The initial (accelerator) beam energy in MeV
     target_material: KinematicsTargetMaterial | None
         Optional target material. If present energy loss will be applied to the beam.
+    event_sample_limit: int
+        The upper limit on the number of resamples per event. Resamples occur most commonly
+        when an excitation is defined that dips below the energy threshold, making a section of the
+        distribution invalid. The upper limit defined here stops us from sampling forever in
+        the case where mutually exclusive steps in energy were defined. In general, the
+        default value should suffice, but for extremely narrow phase spaces this may need to
+        be expanded. But generally it would be better to define a clipped excitation
+        distribution to draw from.
 
     Attributes
     ----------
@@ -94,6 +123,7 @@ class KinematicsPipeline:
         excitations: list[ExciationDistribution],
         beam_energy: float,
         target_material: KinematicsTargetMaterial | None = None,
+        event_sample_limit: int = 1000,
     ):
         # Basic validation
         if len(steps) == 0:
@@ -109,6 +139,7 @@ class KinematicsPipeline:
         self.decays: list[Decay] = []
         self.excitations = excitations
         self.rng = default_rng()
+        self.event_sample_limit = event_sample_limit
 
         # Analyze pipeline for errors
         for idx in range(1, len(steps)):
@@ -188,9 +219,18 @@ class KinematicsPipeline:
         return Q >= 0.0
 
     def sample(self) -> Sample:
+        """Sample the pipeline parameters
+
+        Returns
+        -------
+        Sample
+            The sampled set of pipeline parameters
+        """
 
         projectile_energy = self.beam_energy
         vertex = np.zeros(3)
+
+        # If we have a target, do target stuff
         if self.target_material is not None:
             rho = np.abs(
                 self.rng.normal(0.0, self.target_material.rho_sigma)
@@ -211,19 +251,37 @@ class KinematicsPipeline:
                 )
             )
             projectile_energy = projectile_energy[0]  # Convert 1x1 array to float
+
         pi2 = np.pi * 2.0
         return Sample(
             beam_energy=projectile_energy,
-            excitations=[ex.sample(self.rng) for ex in self.excitations],
+            reaction_excitation=self.excitations[0].sample(self.rng),
             reaction_theta=np.arccos(self.rng.uniform(-1.0, 1.0)),
             reaction_phi=self.rng.uniform(0.0, pi2),
             vertex=vertex,
+            decay_excitations=[
+                self.excitations[idx].sample(self.rng)
+                for idx in range(1, len(self.excitations))
+            ],
             decay_thetas=[np.arccos(self.rng.uniform(-1.0, 1.0)) for _ in self.decays],
             decay_phis=[self.rng.uniform(0.0, pi2) for _ in self.decays],
         )
 
     def run(self) -> tuple[np.ndarray, np.ndarray]:
         """The method simulate an event
+
+        This method will re-sample from the given distributions until
+        a valid event is created OR the single-event-sample-limit is
+        reached. This achieves two goals:
+
+        - The number of events sampled is guaranteed to match the requested amount
+        - The shape of the sampled distributions is correct even in the case where
+        one of the excitations has a region that is kinematically not allowed
+
+        However, it does mean that without an upper limit we could sample forever
+        in the case where an excitation is defined with a distribution that is never
+        energetically allowed. Thus, we have a single-event-sample-limit that stops
+        the calculation if the we sample too many times.
 
         Returns
         -------
@@ -235,11 +293,20 @@ class KinematicsPipeline:
             is a row in the array, and each row contains the px, py, pz, E.
         """
 
+        # Count how many samples we've drawn
+        sample_count = 0
         while True:
+            sample_count += 1
+            # If we reach the single-event-sample-limit, raise
+            if sample_count > self.event_sample_limit:
+                raise PipelineError(
+                    f"Reached Sampling Limit ({self.event_sample_limit} samples) for a single event! You may have defined an illegal reaction!"
+                )
             sample = self.sample()
 
+            # If we're not energetically allowed, resample
             if not self.reaction.is_excitation_allowed(
-                sample.beam_energy, sample.excitations[0]
+                sample.beam_energy, sample.reaction_excitation
             ):
                 continue
 
@@ -247,7 +314,7 @@ class KinematicsPipeline:
                 sample.beam_energy,
                 sample.reaction_theta,
                 sample.reaction_phi,
-                sample.excitations[0],
+                sample.reaction_excitation,
             )
 
             self.result[0] = np.array(
@@ -266,8 +333,9 @@ class KinematicsPipeline:
             prev_resid = rxn_result[3]
             allowed = True
             for idx, decay in enumerate(self.decays):
+                # If we're not energetically allowed, resample
                 if not decay.is_excitation_allowed(
-                    prev_resid, sample.excitations[idx + 1]
+                    prev_resid, sample.decay_excitations[idx]
                 ):
                     allowed = False
                     break
@@ -277,7 +345,7 @@ class KinematicsPipeline:
                     prev_resid,
                     sample.decay_thetas[idx],
                     sample.decay_phis[idx],
-                    sample.excitations[idx + 1],
+                    sample.decay_excitations[idx],
                 )
                 result_pos = idx * 2 + 4
                 self.result[result_pos] = np.array(
@@ -298,6 +366,7 @@ class KinematicsPipeline:
                 )
                 prev_resid = decay_result[2]
 
+            # allowed by, everyone, we have a good event, leave the while
             if allowed:
                 break
 

@@ -6,7 +6,7 @@ authors = [
     {name = "gwm17", email = "gordonmccann215@gmail.com"},
 ]
 dependencies = [
-    "spyral-utils>=0.3.0",
+    "spyral-utils>=1.0.0",
     "h5py>=3.11.0",
     "numba>=0.59.1",
     "tqdm>=4.66.4",
