@@ -26,10 +26,16 @@ $$
 \frac{d\pmb{p}}{dt}=q (\pmb{E} + \pmb{v} \times \pmb{B})
 $$
 
-where $\pmb{p}$ is the relativistic momentum, $\pmb{v}$ is the three velocity, $\pmb{E}$ is the electric field, and $\pmb{B}$ is the magnetic field. To prevent the ODE solver from calculating either very large or very small numbers, we actually divide both sides of this equation by the nucleus' rest mass and thus solve this differential equation for $\gamma \beta$. It is subject to the physical boundaries of the detector and the condition that the nucleus has more than 1 eV of kinetic energy.
+where $\pmb{p}$ is the relativistic momentum, $\pmb{v}$ is the three velocity, $\pmb{E}$ is the electric field, and $\pmb{B}$ is the magnetic field. To prevent the ODE solver from calculating either very large or very small numbers, we actually divide both sides of this equation by the nucleus' rest mass and thus solve this differential equation for $\gamma \beta$. 
 
-
+The equation of motion is subject to the physical boundaries of the detector and the condition that the nucleus has more than 1 eV of kinetic energy. Solutions are provided by the solver at time steps of 1e-10 s.
 
 # Electron creation
 
-The ODE solver return
+Using $\gamma \beta$ provided by the ODE solver at each time step, the number of electrons created through ionization of the gas by the nucleus can be calculated. $\gamma \beta$ is used to find $\beta$ through manipulation of the $\gamma$ factor equation. $\gamma \beta$ is divided by $\beta$ to uncouple $\gamma$ which is then used in the relativistic kinetic energy formula to find the kinetic energy of the nucleus at that point. The difference in energy between two successive points in the trajectory is defined as the energy lost by the nucleus at the point at the later time.
+
+With knowledge of the energy lost by the nucleus at the points in its trajectory, the electrons made can be found. The input W-value is the average energy needed to create an electron-ion pair in the gas, thus the energy lost at each point is divided by this value to find the electrons made. However, ionization is part statistical, so this number is taken as the mean of a normal distribution that is then sampled to find the actual number of electrons at each point. We say part statistical because it has been experimentally shown that the amount of electrons made does not follow purely statistical calculations. Therefore, the input Fano factor of the gas is a multiplicative constant that modifies the mean number of electrons made at each point in an attempt to capture the non-statistical nature of electron-ion pair creation in the gas.
+
+# Point cloud construction
+
+sss
