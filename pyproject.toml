@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "AT-TPC Monte-Carlo simulation engine"
 authors = [
     {name = "gwm17", email = "gordonmccann215@gmail.com"},
+    {name = "sigmanotation", email = "zachserikow@gmail.com"},
 ]
 dependencies = [
     "spyral-utils>=0.3.0",
