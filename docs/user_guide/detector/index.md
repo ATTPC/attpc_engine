@@ -6,7 +6,7 @@ The detector system applies detector and electronics effects to every event in t
 
 The detector system outputs a HDF5 file with a point cloud for each event and some IC related attributes. This ensures that the output can be directly fed into Spyral for analysis. Note that this means that the point cloud construction phase of Spyral should not be run! The HDF5 file generated from the detector system simulation should begin the Spyral analysis with clustering.
 
-It is worth elaborating why the detector system outputs point clouds instead of raw traces. Using raw traces would allow for the full testing of the Spyral analysis beginning with the point cloud reconstruction phase. The main problem with traces is that they simply take up too much data. The objective of a Monte-Carlo simulation is to simulate a phenomena enough times that statistical error is essentially removed and whatever is observed is due to the phenomena itself. To this end, it is often desireable to simulate hundreds of thousands of events in the AT-TPC. To prevent egregiously large trace files, the point cloud reconstruction can be cooked into the simulation to produce orders of magnitude smaller point cloud files. To maintain speed, the point clouds are simulated directly rather than simulating the traces and applying Spyral's point cloud construction phase to them. Almost certainly analysis effects due to the point cloud construciton phase are lost because of this. However, the decrease in file size using point clouds is too great to ignore.
+It is worth elaborating why the detector system outputs point clouds instead of raw traces. Using raw traces would allow for the full testing of the Spyral analysis beginning with the point cloud reconstruction phase. The main problem with traces is that they simply take up too much disk space. The objective of a Monte-Carlo simulation is to simulate a phenomena enough times that statistical error is essentially removed and whatever is observed is due to the phenomena itself. To this end, it is often desireable to simulate hundreds of thousands of events in the AT-TPC. To prevent egregiously large trace files, the point cloud reconstruction can be cooked into the simulation to produce orders of magnitude smaller point cloud files. To maintain speed, the point clouds are simulated directly rather than simulating the traces and applying Spyral's point cloud construction phase to them. Almost certainly analysis effects due to the point cloud construciton phase are lost because of this. However, the decrease in file size using point clouds is too great to ignore.
 
 # Core steps of detector system
 
@@ -16,6 +16,7 @@ The detector system code simulates an event by going through a series of steps t
 2. Determines how many electrons are created at each point of the nucleus' track
 3. Converts the z coordinate of each point to the corresponding time bucket
 3. Transports each point of the nucleus' track to the pad plane, applying diffusion if necessary, to construct its point cloud
+4. Converts the point cloud to Spyral format
 
 We can now describe each step in greater detail.
 
@@ -65,6 +66,12 @@ $$
 
 where D is the diffusion coefficient, $t$ is the average electron drift time ($z_{tb}$), and $E$ is the magnitude of the electric field. See [Peisert and Sauli](https://cds.cern.ch/record/154069?ln=en) for the derivation of this equation. The smearing is done via a discretized grid and the same lookup table is used to find which pad each pixel hits.
 
-Despite the transport schema chosen, each point in the cloud has its corresponding time bucket. This time bucket is truncated to an integer from the exact time bucket found in the previous step because the GET system records in time samples.
+Despite the transport schema chosen, each point in the cloud has its corresponding time bucket. This time bucket is truncated to an integer from the exact time bucket found in the previous step because the GET system records in discrete time samples.
 
-describe time bucket mojo
+In this simulation, we only allow for transverse diffusion. Although longitudinal diffusion exists, it is not included. The reason is that it was found in early iterations of this simulation to not matter. Only for large longitudinal diffusion values noticeable effects were observed.
+
+# Format the point cloud
+
+The final step of the detector simulation is to convert the simulated point cloud to Spyral format. We will avoid discussing what Spyral exactly expects since it is written in the Spyral documentation. We want to point out, though, that the defined SimulationWriter class allows for the user to easily implement a custom converter to write the simulated data to any format, or include any extra information, they may want. This is highly relevant for individuals who have tweaked Spyral. For example, take someone who has changed base Spyral to write point clouds that inlcude extra information. In order for the simulation to work with their code, they will have to write a custom converter that adds the extra fields to the simulated point clouds.
+
+The only Spyral point cloud fields that require special consideration are the amplitude and integral of the point. Recall that the simulation has only recorded the number of electrons at each point. In real data, the amplitude and integral refer to the electrical signal induced by the drifting electrons on a pad. It is from such a signal that a real point cloud is created. This is to say that in order to find these two parameters from the number of electrons created at a point, we need to know the response of the electronics. At the present time, the simulation uses the theoretically derived response function provided by the chip manufacturer to estimate these quantities.
