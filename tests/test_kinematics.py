@@ -47,17 +47,17 @@ def test_pipeline():
                 ),
                 Decay(
                     parent=nuclear_map.get_data(5, 9),
-                    residual_1=nuclear_map.get_data(1, 1),
+                    residual_1=nuclear_map.get_data(2, 4),
                 ),
             ],
-            [ExcitationGaussian(16.8, 0.2), ExcitationGaussian(0.0, 0.5)],
+            [ExcitationGaussian(16.8, 0.2), ExcitationGaussian(0.0, 1.25)],
             24.0,
         )
-        distance, result = pipeline.run()
-        assert np.all(pipeline.get_proton_numbers() == np.array([5, 2, 2, 5, 1, 4]))
-        assert np.all(pipeline.get_mass_numbers() == np.array([10, 3, 4, 9, 1, 8]))
+        vertex, result = pipeline.run()
+        assert np.all(pipeline.get_proton_numbers() == np.array([5, 2, 2, 5, 2, 3]))
+        assert np.all(pipeline.get_mass_numbers() == np.array([10, 3, 4, 9, 4, 5]))
         assert len(result) == 6
-        assert np.all(distance == 0.0)
+        assert np.all(vertex == 0.0)
     except PipelineError as e:
         print(f"Failed with error {e}")
         assert False
@@ -132,6 +132,34 @@ def test_pipeline_order():
             ],
             [ExcitationGaussian(16.8, 0.2), ExcitationGaussian(0.0, 0.0)],
             24.0,
+        )
+        result = pipeline.run()
+        assert np.all(pipeline.get_proton_numbers() == np.array([5, 2, 2, 5, 2, 3]))
+        assert np.all(pipeline.get_mass_numbers() == np.array([10, 3, 4, 9, 4, 5]))
+        assert len(result) == 6
+    except PipelineError as e:
+        pass
+    else:
+        print("Failed out-of-order test")
+        assert False
+
+
+def test_pipeline_sample_limit():
+    # Test if we catch banned energetics
+    # Define an illegal excitation for a given beam energy
+    try:
+        pipeline = KinematicsPipeline(
+            [
+                Reaction(
+                    target=nuclear_map.get_data(5, 10),
+                    projectile=nuclear_map.get_data(2, 3),
+                    ejectile=nuclear_map.get_data(2, 4),
+                ),
+            ],
+            [
+                ExcitationGaussian(16.8, 0.2),
+            ],
+            2.0,
         )
         result = pipeline.run()
         assert np.all(pipeline.get_proton_numbers() == np.array([5, 2, 2, 5, 2, 3]))
