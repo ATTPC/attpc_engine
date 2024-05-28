@@ -1,0 +1,1064 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the AT-TPC Simulation Engine">
+      
+      
+      
+        <link rel="canonical" href="https://example.com/user_guide/detector/">
+      
+      
+        <link rel="prev" href="../kinematics/">
+      
+      
+        <link rel="next" href="../numba/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>Detector - attpc_engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="green">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#detector-system" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="attpc_engine" class="md-header__button md-logo" aria-label="attpc_engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            attpc_engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Detector
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="green"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ATTPC/attpc_engine/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="attpc_engine" class="md-nav__button md-logo" aria-label="attpc_engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    attpc_engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ATTPC/attpc_engine/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    User Guide
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            User Guide
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Systems
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            Systems
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../systems/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    About Systems
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kinematics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Detector
+  </span>
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../numba/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Numba
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    About
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    detector
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            detector
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/detector/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    About detector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/detector/beam_pads/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    beam_pads
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/detector/constants/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    constants
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/detector/parameters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    parameters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/detector/response/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    response
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/detector/simulator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    simulator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/detector/solver/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    solver
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/detector/transporter/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    transporter
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/detector/writer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    writer
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    kinematics
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            kinematics
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/kinematics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    About kinematics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/kinematics/excitation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    excitation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/kinematics/pipeline/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    pipeline
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/kinematics/reaction/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    reaction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../for_devs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    For Developers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="detector-system">Detector system</h1>
+<p>The detector system applies detector and electronics effects to every event in the input kinematics file, generated from the kinematics system, to simulate how they would look in the AT-TPC. It is a Monte-Carlo simulation that aims to capture the overarching behavior of the detector and its electronics, not mimic their exact behavior which is horrendously complicated and not completely understood. The detector system code is based on code developed by Daniel Bazin originally in Igor Pro and includes effects pointed out by Adam Anthony in his <a href="https://ezproxy.msu.edu/login?url=https://www.proquest.com/pqdtglobal1/dissertations-theses/fission-lead-region/docview/2855740534/sem-2?accountid=12598">thesis</a>.</p>
+<h1 id="output">Output</h1>
+<p>The detector system outputs a HDF5 file with a point cloud for each event and some IC related attributes. This ensures that the output can be directly fed into Spyral for analysis. Note that this means that the point cloud construction phase of Spyral should not be run! The HDF5 file generated from the detector system simulation should begin the Spyral analysis with clustering.</p>
+<p>It is worth elaborating why the detector system outputs point clouds instead of raw traces. Using raw traces would allow for the full testing of the Spyral analysis beginning with the point cloud reconstruction phase. The main problem with traces is that they simply take up too much disk space. The objective of a Monte-Carlo simulation is to simulate a phenomena enough times that statistical error is essentially removed and whatever is observed is due to the phenomena itself. To this end, it is often desireable to simulate hundreds of thousands of events in the AT-TPC. To prevent egregiously large trace files, the point cloud reconstruction can be cooked into the simulation to produce orders of magnitude smaller point cloud files. To maintain speed, the point clouds are simulated directly rather than simulating the traces and applying Spyral's point cloud construction phase to them. Almost certainly analysis effects due to the point cloud construciton phase are lost because of this. However, the decrease in file size using point clouds is too great to ignore.</p>
+<h1 id="core-steps-of-detector-system">Core steps of detector system</h1>
+<p>The detector system code simulates an event by going through a series of steps to ultimately produce its point cloud. For each nucleus in the exit channel of an event, the detector system:</p>
+<ol>
+<li>Simulates the track of the nucleus by solving its equation of motion in the AT-TPC</li>
+<li>Determines how many electrons are created at each point of the nucleus' track</li>
+<li>Converts the z coordinate of each point to the corresponding time bucket</li>
+<li>Transports each point of the nucleus' track to the pad plane, applying diffusion if necessary, to construct its point cloud</li>
+<li>Converts the point cloud to Spyral format</li>
+</ol>
+<p>We can now describe each step in greater detail.</p>
+<h1 id="track-simulation">Track simulation</h1>
+<p>The AT-TPC contains an inherent electric field parallel to the beam axis. It is also usually placed inside a solenoid that provides a magnetic field in the same direction. This means that a charged particle in the AT-TPC has an equation of motion given by the relativistic Lorentz force</p>
+<div class="arithmatex">\[ 
+\frac{d\pmb{p}}{dt} = q (\pmb{E} + \pmb{v} \times \pmb{B})
+\]</div>
+<p>where <span class="arithmatex">\(\pmb{p}\)</span> is the relativistic momentum, <span class="arithmatex">\(\pmb{v}\)</span> is the three velocity, <span class="arithmatex">\(\pmb{E}\)</span> is the electric field, and <span class="arithmatex">\(\pmb{B}\)</span> is the magnetic field. To prevent the ODE solver from calculating either very large or very small numbers, we actually divide both sides of this equation by the nucleus' rest mass and thus solve this differential equation for <span class="arithmatex">\(\gamma \beta\)</span>. </p>
+<p>The equation of motion is subject to the physical boundaries of the detector and the condition that the nucleus has more than 1 eV of kinetic energy. Solutions are provided by the solver at time steps of 1e-10 s.</p>
+<h1 id="electron-creation">Electron creation</h1>
+<p>Using <span class="arithmatex">\(\gamma \beta\)</span> provided by the ODE solver at each time step, the number of electrons created through ionization of the gas by the nucleus can be calculated. <span class="arithmatex">\(\gamma \beta\)</span> is used to find <span class="arithmatex">\(\beta\)</span> through manipulation of the <span class="arithmatex">\(\gamma\)</span> factor equation. <span class="arithmatex">\(\gamma \beta\)</span> is divided by <span class="arithmatex">\(\beta\)</span> to uncouple <span class="arithmatex">\(\gamma\)</span> which is then used in the relativistic kinetic energy formula to find the kinetic energy of the nucleus at that point. The difference in energy between two successive points in the trajectory is defined as the energy lost by the nucleus at the point at the later time.</p>
+<p>With knowledge of the energy lost by the nucleus at the points in its trajectory, the electrons made can be found. The input W-value is the average energy needed to create an electron-ion pair in the gas, thus the energy lost at each point is divided by this value to find the electrons made. However, ionization is part statistical, so this number is taken as the mean of a normal distribution that is then sampled to find the actual number of electrons at each point. We say part statistical because it has been experimentally shown that the amount of electrons made does not follow purely statistical calculations. Therefore, the input Fano factor of the gas is a multiplicative constant that modifies the mean number of electrons made at each point in an attempt to capture the non-statistical nature of electron-ion pair creation in the gas.</p>
+<p>Only an integer amount of electrons can be made. Trunction is applied and points with less than one electron made are removed from the track.</p>
+<h1 id="convert-z-position-to-time-buckets">Convert z position to time buckets</h1>
+<p>The GET electronics records information in discrete time intervals called time buckets. The trajectory of the nucleus returned from the ODE solver is described by three Cartesian coordinates. The z coordinate of each point then must be converted to time buckets. The formula to convert the z coordinate <span class="arithmatex">\(z_{coord}\)</span> to time buckets <span class="arithmatex">\(z_{tb}\)</span> is given by </p>
+<div class="arithmatex">\[ 
+z_{tb} = \frac{l - z_{coord}}{v_{e}} + m_{tb}
+\]</div>
+<p>where <span class="arithmatex">\(l\)</span> is the length of the AT-TPC active volume, <span class="arithmatex">\(v_{e}\)</span> is the electron drift velocity, and <span class="arithmatex">\(m_{tb}\)</span> is the micromegas time bucket. </p>
+<p>Two important points are made about this equation. First, <span class="arithmatex">\(z_{coord}\)</span> is subtracted from <span class="arithmatex">\(l\)</span>. This is because the coordinate system used has the AT-TPC window at <span class="arithmatex">\(z=0\)</span> and the micromegas at <span class="arithmatex">\(z=l\)</span> and time buckets are recorded with respect to the micromegas (electrons drift towards it). Second, the resulting time bucket has <span class="arithmatex">\(m_{tb}\)</span> added to it. This is due to the fact that the micromegas edge of the detector does not necessarily correspond to a time bucket of zero. A similar statement can be made for the window edge of the detector; it does not necessarily correspond to the maximum recordable time bucket.</p>
+<h1 id="point-cloud-construction">Point cloud construction</h1>
+<p>Each point in the point cloud has three pieces of information recorded: the pad it belongs to, how many electrons it contains, and its time bucket. Point cloud construction primarily deals with determining the first two from the calculated points in the nucleus' trajectory. There are two ways to construct a point cloud, and we start by describing the simple case of no transverse diffusion.</p>
+<p>When the transverse diffusion is specified to be zero, point clouds are constructed from what we call "point transport" where the trajectory is projected onto the pad plane and the pad that each point hits is found from a lookup table. In this scheme, the electrons are not spread and hence the number of electrons that hit each pad is trivially the number of electrons at each point of the trajectory.</p>
+<p>When the transverse diffusion is non-zero, point clouds are constructed from the more involved "transverse transport" scheme. The electrons made at each point are smeared from a bivariate normal distribution over the pad plane. The standard deviation <span class="arithmatex">\(\sigma\)</span> of the bivariate distribution is the same for both the x and y directions and is given by</p>
+<div class="arithmatex">\[
+\sigma = \sqrt{2 D v_{e} t / E}
+\]</div>
+<p>where D is the diffusion coefficient, <span class="arithmatex">\(t\)</span> is the average electron drift time (<span class="arithmatex">\(z_{tb}\)</span>), and <span class="arithmatex">\(E\)</span> is the magnitude of the electric field. See <a href="https://cds.cern.ch/record/154069?ln=en">Peisert and Sauli</a> for the derivation of this equation. The smearing is done via a discretized grid and the same lookup table is used to find which pad each pixel hits.</p>
+<p>Despite the transport schema chosen, each point in the cloud has its corresponding time bucket. This time bucket is truncated to an integer from the exact time bucket found in the previous step because the GET system records in discrete time samples.</p>
+<p>In this simulation, we only allow for transverse diffusion. Although longitudinal diffusion exists, it is not included. The reason is that it was found in early iterations of this simulation to not matter. Only for large longitudinal diffusion values noticeable effects were observed.</p>
+<h1 id="format-the-point-cloud">Format the point cloud</h1>
+<p>The final step of the detector simulation is to convert the simulated point cloud to Spyral format. We will avoid discussing what Spyral exactly expects since it is written in the Spyral documentation. We want to point out, though, that the defined SimulationWriter class allows for the user to easily implement a custom converter to write the simulated data to any format, or include any extra information, they may want. This is highly relevant for individuals who have tweaked Spyral. For example, take someone who has changed base Spyral to write point clouds that inlcude extra information. In order for the simulation to work with their code, they will have to write a custom converter that adds the extra fields to the simulated point clouds.</p>
+<p>The only Spyral point cloud fields that require special consideration are the amplitude and integral of the point. Recall that the simulation has only recorded the number of electrons at each point. In real data, the amplitude and integral refer to the electrical signal induced by the drifting electrons on a pad. It is from such a signal that a real point cloud is created. This is to say that in order to find these two parameters from the number of electrons created at a point, we need to know the response of the electronics. At the present time, the simulation uses the theoretically derived response function provided by the chip manufacturer to estimate these quantities.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+        <script src="../../javascript/mathjax.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
