@@ -3,13 +3,8 @@ name = "attpc_engine"
 version = "0.1.0"
 description = "AT-TPC Monte-Carlo simulation engine"
 authors = [
-<<<<<<< sigmanotation_dev
-    {name = "gwm17", email = "gordonmccann215@gmail.com"},
-    {name = "sigmanotation", email = "zachserikow@gmail.com"},
-=======
     {name = "Gordon McCann", email = "gordonmccann215@gmail.com"},
-    {name = "Zach Serikow"},
->>>>>>> main
+    {name = "Zach Serikow", email = "zachserikow@gmail.com"},
 ]
 dependencies = [
     "spyral-utils>=1.0.0",
