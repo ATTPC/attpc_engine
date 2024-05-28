@@ -1,13 +1,10 @@
 import numpy as np
 from dataclasses import dataclass
 from spyral_utils.nuclear.target import GasTarget
-from numba import int64
-from numba.typed import Dict
 from importlib import resources
 from pathlib import Path
 
 DEFAULT = "Default"
-DEFAULT_LEGACY = "DefaultLegacy"
 
 
 @dataclass
@@ -31,7 +28,7 @@ class DetectorParams:
         a combination of a micromegas and THGEM. Unitless.
     gas_target: spyral_utils.nuclear.GasTarget
         Target gas in the AT-TPC
-    diffusion: tuple[float, float]
+    diffusion: float
         Transverse diffusion coefficient of electrons in the target gas.
         In units of Volts
     fano_factor: float
@@ -67,6 +64,8 @@ class ElectronicsParams:
         The micromegas edge of the detector in time buckets.
     windows_edge: int
         The windows edge of the detector in time buckets.
+    adc_threshold: float
+        Minimum ADC signal amplitude a point must have in the point cloud.
     """
 
     clock_freq: float
@@ -149,10 +148,7 @@ class Config:
         the grid edges in mm and the step size of the grid.
 
         """
-        if (
-            self.pad_params.grid_path == DEFAULT
-            or self.pad_params.grid_path == DEFAULT_LEGACY
-        ):
+        if self.pad_params.grid_path == DEFAULT:
             grid_handle = resources.files("attpc_engine.detector.data").joinpath(
                 "pad_grid.npz"
             )
