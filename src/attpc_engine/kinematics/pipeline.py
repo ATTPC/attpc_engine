@@ -25,8 +25,7 @@ class KinematicsTargetMaterial:
     rho_sigma: float
         The standard deviation of a normal distribution centered at 0.0 used to sample
         the reaction vertex &rho; in cylindrical coordinates. The distribution in
-        cylindrical &theta; is assumed to be uniform.
-
+        cylindrical &theta; is assumed to be uniform. In units of meters.
     """
 
     material: GasTarget
@@ -84,7 +83,7 @@ class KinematicsPipeline:
     steps: list[Reaction | Decay]
         The steps to be added into the pipeline. The first step should
         always be a Reaction. All subsequent steps should be Decays.
-    excitations: list[Excitation]
+    excitations: list[ExcitationDistribution]
         The excited state to populate in the Reaction residual or Decay residual_2.
         The number of excitations should be the same as the number of steps, and the order
         of the excitations and steps should be the same.
@@ -160,7 +159,7 @@ class KinematicsPipeline:
             else:
                 if (
                     prev_step.residual_2.isotopic_symbol
-                    != cur_step.residual_2.isotopic_symbol
+                    != cur_step.parent.isotopic_symbol
                 ):
                     raise PipelineError(
                         f"Broken step in pipeline! Step {idx-1} residual_2 does not match Step {idx} parent!"
@@ -439,6 +438,21 @@ def run_kinematics_pipeline(
     data_group.attrs["mass_numbers"] = pipeline.get_mass_numbers()
 
     print("Start your engine!")
+    # ASCII art from https://emojicombos.com/race-flag-ascii-art
+    print(
+        r"""
+            ⠀⠀⠀⠀⠀⠀⠀⣠⣿⣆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⣿⣄⠀⠀⠀⠀⠀⠀⠀
+            ⠀⠀⠀⠀⢀⡔⢺⣿⣿⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣿⣿⡗⠢⡀⠀⠀⠀⠀
+            ⠀⠀⠀⠀⠀⢷⣶⡟⠉⢻⣷⡀⠀⠀⠀⠀⠀⠀⠀⣾⡿⠉⢻⣶⡾⠁⠀⠀⠀⠀
+            ⣠⣤⣴⠖⠒⠹⣿⣷⣀⣸⣿⣧⠀⠀⠀⠀⠀⠀⣸⣿⣇⣀⣾⣿⠏⠒⠲⣶⣤⣄
+            ⢹⣿⣿⡄⠀⣀⡝⠁⠘⣿⣿⣿⡆⠀⠀⠀⠀⢠⣿⣿⣿⠏⠈⢻⣀⠀⢠⣿⣿⡏
+            ⠀⢃⠀⠘⣿⣿⣿⣄⣠⡟⠉⢿⣿⡀⠀⠀⠀⣾⡿⠉⢹⣄⣀⣿⣿⣿⠃⠀⡸⠀
+            ⠀⠈⣦⣴⣾⠉⠁⠈⣿⣷⠀⠈⣿⣷⠀⠀⣼⣿⠃⠀⣾⣿⠃⠈⠉⣹⣦⣴⠁⠀
+            ⠀⠀⠸⣿⣿⡦⠤⠐⠋⠁⠀⠀⠸⣿⣇⢰⣿⡏⠀⠀⠈⠙⠂⠤⢴⣿⣿⠇⠀⠀
+            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⣿⣿⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+        """
+    )
     for event in trange(0, n_events):
         vertex, result = pipeline.run()
         data = data_group.create_dataset(f"event_{event}", data=result)  # type: ignore
