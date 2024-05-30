@@ -49,14 +49,26 @@ def test_pipeline():
                     parent=nuclear_map.get_data(5, 9),
                     residual_1=nuclear_map.get_data(2, 4),
                 ),
+                Decay(
+                    parent=nuclear_map.get_data(3, 5),
+                    residual_1=nuclear_map.get_data(2, 4),
+                ),
             ],
-            [ExcitationGaussian(16.8, 0.2), ExcitationGaussian(0.0, 1.25)],
+            [
+                ExcitationGaussian(16.8, 0.2),
+                ExcitationGaussian(0.0, 1.25),
+                ExcitationGaussian(0.0, 0.0),
+            ],
             24.0,
         )
         vertex, result = pipeline.run()
-        assert np.all(pipeline.get_proton_numbers() == np.array([5, 2, 2, 5, 2, 3]))
-        assert np.all(pipeline.get_mass_numbers() == np.array([10, 3, 4, 9, 4, 5]))
-        assert len(result) == 6
+        assert np.all(
+            pipeline.get_proton_numbers() == np.array([5, 2, 2, 5, 2, 3, 2, 1])
+        )
+        assert np.all(
+            pipeline.get_mass_numbers() == np.array([10, 3, 4, 9, 4, 5, 4, 1])
+        )
+        assert len(result) == 8
         assert np.all(vertex == 0.0)
     except PipelineError as e:
         print(f"Failed with error {e}")
