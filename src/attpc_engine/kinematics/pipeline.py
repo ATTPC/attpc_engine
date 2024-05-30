@@ -159,7 +159,7 @@ class KinematicsPipeline:
             else:
                 if (
                     prev_step.residual_2.isotopic_symbol
-                    != cur_step.residual_2.isotopic_symbol
+                    != cur_step.parent.isotopic_symbol
                 ):
                     raise PipelineError(
                         f"Broken step in pipeline! Step {idx-1} residual_2 does not match Step {idx} parent!"
