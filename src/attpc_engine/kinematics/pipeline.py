@@ -385,7 +385,7 @@ class KinematicsPipeline:
         z[2] = self.reaction.ejectile.Z
         z[3] = self.reaction.residual.Z
         for idx, decay in enumerate(self.decays):
-            offset = idx + 4
+            offset = idx * 2 + 4
             z[offset] = decay.residual_1.Z
             z[offset + 1] = decay.residual_2.Z
         return z
@@ -404,7 +404,7 @@ class KinematicsPipeline:
         a[2] = self.reaction.ejectile.A
         a[3] = self.reaction.residual.A
         for idx, decay in enumerate(self.decays):
-            offset = idx + 4
+            offset = idx * 2 + 4
             a[offset] = decay.residual_1.A
             a[offset + 1] = decay.residual_2.A
         return a
