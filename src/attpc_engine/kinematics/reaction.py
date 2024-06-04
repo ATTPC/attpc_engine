@@ -3,6 +3,7 @@ from .. import nuclear_map
 from spyral_utils.nuclear import NucleusData
 import vector
 import numpy as np
+from math import isclose
 
 
 class Reaction:
@@ -72,6 +73,9 @@ class Reaction:
     ) -> bool:
         """Check if a given exctiation, projectile energy is energetically allowed
 
+        Calculate center-of-mass energy of the system and verify that there is enough
+        energy to make the outgoing products
+
         Parameters
         ----------
         projectile_energy: float
@@ -93,6 +97,7 @@ class Reaction:
             (self.target.mass + projectile_energy + self.projectile.mass) ** 2.0
             - pz**2.0
         )
+
         outgoing_mass = self.ejectile.mass + self.residual.mass + residual_excitation
         return outgoing_mass < E_cm
 
