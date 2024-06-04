@@ -84,19 +84,17 @@ class Reaction:
         bool
             True if allowed, False if not
         """
-        q_value = (
-            self.target.mass
-            + self.projectile.mass
-            - (self.ejectile.mass + self.residual.mass + residual_excitation)
+        # System z-momentum in lab
+        pz = np.sqrt(
+            projectile_energy * (projectile_energy + 2.0 * self.projectile.mass)
         )
-
-        e_threshold = (
-            -q_value
-            * (self.ejectile.mass + self.residual.mass)
-            / (self.ejectile.mass + self.residual.mass - self.projectile.mass)
+        # Lorentz invariant total length (i.e. CoM system energy)
+        E_cm = np.sqrt(
+            (self.target.mass + projectile_energy + self.projectile.mass) ** 2.0
+            - pz**2.0
         )
-
-        return projectile_energy >= e_threshold
+        outgoing_mass = self.ejectile.mass + self.residual.mass + residual_excitation
+        return outgoing_mass < E_cm
 
     def calculate(
         self,
