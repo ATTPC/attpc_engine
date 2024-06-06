@@ -64,7 +64,7 @@ class ElectronicsParams:
         The micromegas edge of the detector in time buckets.
     windows_edge: int
         The windows edge of the detector in time buckets.
-    adc_threshold: float
+    adc_threshold: int
         Minimum ADC signal amplitude a point must have in the point cloud.
     """
 
@@ -73,7 +73,7 @@ class ElectronicsParams:
     shaping_time: int
     micromegas_edge: int
     windows_edge: int
-    adc_threshold: float
+    adc_threshold: int
 
 
 @dataclass
@@ -98,15 +98,45 @@ class Config:
     A wrapper class containing all the input detector and electronics parameters
     for the simulation.
 
+    Parameters
+    ----------
+    detector_params: DetectorParams
+        Detector parameters for simulation.
+    electronics_params: ElectronicsParams
+        Electronics parameters for simulation.
+    pad_params: PadParams
+        Parameters related to the pads.
+
     Attributes
     ----------
-    detector: DetectorParams
-        Detector parameters
-    electronics: ElectronicsParams
-        Electronics parameters
-    pads: PadParams
-        Pad parameters
+    detector_params: DetectorParams
+        Detector parameters for simulation.
+    electronics_params: ElectronicsParams
+        Electronics parameters for simulation.
+    pad_params: PadParams
+        Parameters related to the pads.
+    pad_grid: np.ndarray | None
+        Mesh of the pad plane. See load_pad_grid()
+        for more details.
+    pad_grid_edges: np.ndarray | None
+        a 1x3 array where the first element is the leftmost edge of the
+        pad grid, the second element is the rightmost edge, and the third
+        element is the step size in mm.
+    pad_centers: np.ndarray | None
+        10240x2 array where where each row is one pad and its first element
+        is the x coordinate of its center and the second element is the
+        y coordinate.
+    drift_velocity: float
+        Drift velocity in m / time bucket.
 
+    Methods
+    -------
+    calculate_drift_velocity() -> None
+        Calculate drift velocity of electrons in the gas.
+    load_pad_grid() -> None
+        Load the pad grid from an npz file.
+    load_pad_centers() -> None
+        Load the pad plane centers from a csv file.
     """
 
     def __init__(
@@ -121,7 +151,7 @@ class Config:
         self.pad_grid: np.ndarray | None = None
         self.pad_grid_edges: np.ndarray | None = None
         self.pad_centers: np.ndarray | None = None
-        self.drift_velocity = 0.0
+        self.drift_velocity: float = 0.0
         # Set everything
         self.calculate_drift_velocity()
         self.load_pad_grid()
@@ -140,13 +170,13 @@ class Config:
         )
 
     def load_pad_grid(self) -> None:
-        """Load the pad grid from an npz file
+        """Load the pad grid from an npz file.
 
         The pad grid is a regular mesh which descretizes the pad plane into
         a NxN matrix. Each element contains the pad ID at that location
-        in space. The grid file should also contain a 3 element array with
+        in space. If that location corresponds to no pad, then the pad ID is -1.
+        The grid file should also contain a 3 element array with
         the grid edges in mm and the step size of the grid.
-
         """
         if self.pad_params.grid_path == DEFAULT:
             grid_handle = resources.files("attpc_engine.detector.data").joinpath(
@@ -162,10 +192,9 @@ class Config:
             self.pad_grid_edges = data["edges"]
 
     def load_pad_centers(self) -> None:
-        """Load the pad plane centers from a csv file
+        """Load the pad plane centers from a csv file.
 
-        Load a csv file contains the x, y center position of each pad
-
+        Load a csv file contains the x, y center position of each pad.
         """
         self.pad_centers = np.zeros((10240, 2))
         if self.pad_params.geometry_path == DEFAULT:
