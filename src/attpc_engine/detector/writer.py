@@ -127,6 +127,7 @@ class SpyralWriter:
         self.max_file_size: int = max_file_size
         self.run_number = 0
         self.event_number_low = 0  # Kinematics generator always starts with event 0
+        self.event_number_high = 0  # By default set to 0
         self.create_file()
 
     def create_file(self) -> None:
