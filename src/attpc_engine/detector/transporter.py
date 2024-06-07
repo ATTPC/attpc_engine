@@ -78,7 +78,9 @@ def position_to_index(
 ) -> tuple[int, int]:
     """
     Given an input position in (x, y), outputs the index on the pad map
-    corresponding to that position.
+    corresponding to that position. For information about the format of
+    the pad map, see the load_pad_grid method of the Config class in
+    the parameters file.
 
     Parameters
     ----------
@@ -100,8 +102,12 @@ def position_to_index(
     high_edge: float = grid_edges[1]
     bin_size: float = grid_edges[2]
 
-    # Check if position is off pad plane. This condition requires a symmetric pad map!
-    if (abs(math.floor(x)) > high_edge) or (abs(math.floor(y)) > high_edge):
+    # Pad map is exclusive on highest edge
+    if math.floor(x) >= high_edge or math.floor(y) >= high_edge:
+        return (-1, -1)
+
+    # Pad map is inclusive on lowest edge
+    if math.floor(x) < high_edge or math.floor(y) < high_edge:
         return (-1, -1)
 
     x_idx = int((math.floor(x) - low_edge) / bin_size)

@@ -177,6 +177,15 @@ class Config:
         in space. If that location corresponds to no pad, then the pad ID is -1.
         The grid file should also contain a 3 element array with
         the grid edges in mm and the step size of the grid.
+
+        The pad grid is indexed by the lower edge of each spatial bin. Due to this,
+        and because the pad grid must be symmetric, this means that the Nth column
+        and row are not the same as the 0th row and column. For example, if the pad
+        grid is to be symmetric from -280 to 280 mm with spatial bins of 0.1 mm,
+        the Oth row and column correspond to bin edges of -280 (the bin is [-280, 279.9))
+        while the Nth row and column correspond to bin edges of 279.9 (the bin is
+        [-279.9, 280). In this sense, the pad grid is inclusive on the lowest bin
+        edge and exclusive on the highest bin edge.
         """
         if self.pad_params.grid_path == DEFAULT:
             grid_handle = resources.files("attpc_engine.detector.data").joinpath(
