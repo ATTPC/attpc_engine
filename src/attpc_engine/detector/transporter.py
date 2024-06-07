@@ -110,7 +110,6 @@ def position_to_index(
     if math.floor(x) < low_edge or math.floor(y) < low_edge:
         return (-1, -1)
 
-    print("good")
     x_idx = int((math.floor(x) - low_edge) / bin_size)
     y_idx = int((math.floor(y) - low_edge) / bin_size)
 
