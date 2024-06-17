@@ -151,7 +151,7 @@ class Config:
         self.pad_grid: np.ndarray | None = None
         self.pad_grid_edges: np.ndarray | None = None
         self.pad_centers: np.ndarray | None = None
-        self.drift_velocity: float = 0.0
+        self.drift_velocity = 0.0
         # Set everything
         self.calculate_drift_velocity()
         self.load_pad_grid()

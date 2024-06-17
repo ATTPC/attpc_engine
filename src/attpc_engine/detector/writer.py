@@ -12,15 +12,44 @@ from numba import njit
 class SimulationWriter(Protocol):
     """
     Protocol class for what methods a simulation writer class should contain.
+
+    Methods
+    -------
+    write(data: np.ndarray, config: Config, event_number: int) -> None
+        Writes a simulated point cloud to the point cloud file.
+    get_filename() -> Path
+        Returns directory that point cloud files are written to.
+    close() -> None
+        Closes the writer.
     """
 
     def write(self, data: np.ndarray, config: Config, event_number: int) -> None:
+        """
+        Writes a simulated point cloud to the point cloud file.
+
+        Parameters
+        ----------
+        data: np.ndarray
+            An Nx3 array representing the point cloud. Each row is a point, with elements
+            [pad id, time bucket, electrons].
+        config: Config
+            The simulation configuration.
+        event_number: int
+            Event number of simulated event from the kinematics file.
+        """
         pass
 
-    def set_number_of_events(self, n_events: int) -> None:
+    def get_directory_name(self) -> Path:
+        """
+        Returns directory that point cloud files are written to.
+        """
         pass
 
-    def get_directory_name(self) -> Path: ...
+    def close(self) -> None:
+        """
+        Closes the writer.
+        """
+        pass
 
 
 @njit
@@ -119,9 +148,12 @@ class SpyralWriter:
         Not currently used, but required to have this method.
     get_filename() -> Path
         Returns directory that point cloud files are written to.
+    close() -> None
+        Closes the writer and ensures the current point cloud file being
+        written to has the first and last written events as attributes.
     """
 
-    def __init__(self, directory_path: Path, config: Config, max_file_size: int = 10e9):
+    def __init__(self, directory_path: Path, config: Config, max_file_size: int = 5e9):
         self.directory_path: Path = directory_path
         self.response: np.ndarray = get_response(config).copy()
         self.max_file_size: int = max_file_size
@@ -197,3 +229,10 @@ class SpyralWriter:
         Returns directory that point cloud files are written to.
         """
         return self.directory_path
+
+    def close(self) -> None:
+        """
+        Closes the writer and ensures the current point cloud file being
+        written to has the first and last written events as attributes.
+        """
+        self.set_number_of_events()

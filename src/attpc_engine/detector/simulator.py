@@ -373,6 +373,6 @@ def run_simulation(
             continue
 
         writer.write(cloud, config, event_number)
-    writer.set_number_of_events()
+    writer.close()
     print("Done.")
     print("----------------------------------------")
