@@ -337,8 +337,7 @@ def run_simulation(
 
     n_events: int = input_data_group.attrs["n_events"]  # type: ignore
     print(f"Found {n_events} kinematics events.")
-    writer.set_number_of_events(n_events)
-    print(f"Output will be written to {writer.get_filename()}.")
+    print(f"Output will be written to {writer.get_directory_name()}.")
 
     rng = default_rng()
 
@@ -374,5 +373,6 @@ def run_simulation(
             continue
 
         writer.write(cloud, config, event_number)
+    writer.close()
     print("Done.")
     print("----------------------------------------")
