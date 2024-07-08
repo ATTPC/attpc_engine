@@ -1,5 +1,5 @@
 from .reaction import Reaction, Decay
-from .excitation import ExciationDistribution
+from .excitation import ExcitationDistribution
 
 from spyral_utils.nuclear.target import GasTarget
 import numpy as np
@@ -119,7 +119,7 @@ class KinematicsPipeline:
     def __init__(
         self,
         steps: list[Reaction | Decay],
-        excitations: list[ExciationDistribution],
+        excitations: list[ExcitationDistribution],
         beam_energy: float,
         target_material: KinematicsTargetMaterial | None = None,
         event_sample_limit: int = 1000,
@@ -252,17 +252,21 @@ class KinematicsPipeline:
             projectile_energy = projectile_energy[0]  # Convert 1x1 array to float
 
         pi2 = np.pi * 2.0
+
         return Sample(
             beam_energy=projectile_energy,
-            reaction_excitation=self.excitations[0].sample(self.rng),
-            reaction_theta=np.arccos(self.rng.uniform(-1.0, 1.0)),
+            reaction_excitation=self.excitations[0].sample_energy(self.rng),
+            reaction_theta=self.excitations[0].sample_theta(self.rng),
             reaction_phi=self.rng.uniform(0.0, pi2),
             vertex=vertex,
             decay_excitations=[
-                self.excitations[idx].sample(self.rng)
+                self.excitations[idx].sample_energy(self.rng)
                 for idx in range(1, len(self.excitations))
             ],
-            decay_thetas=[np.arccos(self.rng.uniform(-1.0, 1.0)) for _ in self.decays],
+            decay_thetas=[
+                self.excitations[idx].sample_theta(self.rng)
+                for idx in range(1, len(self.excitations))
+            ],
             decay_phis=[self.rng.uniform(0.0, pi2) for _ in self.decays],
         )
 

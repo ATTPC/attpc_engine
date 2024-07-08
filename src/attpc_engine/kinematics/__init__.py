@@ -6,6 +6,11 @@ from .pipeline import (
     KinematicsTargetMaterial,
 )
 
-from .excitation import ExciationDistribution, ExcitationGaussian, ExcitationUniform
+from .excitation import (
+    ExcitationDistribution,
+    ExcitationGaussian,
+    ExcitationUniform,
+    ExcitationBreitWigner,
+)
 
 from .reaction import Reaction, Decay

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import h5py as h5
+import os
 
 from .parameters import Config
 from .response import apply_response, get_response
@@ -186,6 +187,12 @@ class SpyralWriter:
         event_number: int
             Event number of simulated event from the kinematics file.
         """
+        # If current file is too large, make a new one
+        if self.file_path.stat().st_size >= self.max_file_size:
+            self.set_number_of_events()
+            self.file.close()
+            self.create_file()
+
         if config.pad_centers is None:
             raise ValueError("Pad centers are not assigned at write!")
         spyral_format = convert_to_spyral(
@@ -203,11 +210,6 @@ class SpyralWriter:
         dset = self.cloud_group.create_dataset(
             f"cloud_{event_number}", data=spyral_format
         )
-
-        # If current file is too large, make a new one
-        if self.file_path.stat().st_size > self.max_file_size:
-            self.set_number_of_events()
-            self.create_file()
 
         # No ic stuff from simulation
         dset.attrs["ic_amplitude"] = -1.0
@@ -236,3 +238,4 @@ class SpyralWriter:
         written to has the first and last written events as attributes.
         """
         self.set_number_of_events()
+        self.file.close()
