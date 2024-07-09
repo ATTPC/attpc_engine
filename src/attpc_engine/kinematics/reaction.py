@@ -3,7 +3,6 @@ from .. import nuclear_map
 from spyral_utils.nuclear import NucleusData
 import vector
 import numpy as np
-from math import isclose
 
 
 class Reaction:
