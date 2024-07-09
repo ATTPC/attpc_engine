@@ -55,4 +55,4 @@ By default, the kinematics simulation writes data out to the [HDF5](https://www.
 convert-kinematics <your_hdf5_file> <output_parquet_file>
 ```
 
-Make sure you have your virtual environment with attpc_conduit installed active!
+Make sure you have your virtual environment with attpc_engine installed active!
