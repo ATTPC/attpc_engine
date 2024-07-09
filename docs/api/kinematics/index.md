@@ -5,5 +5,6 @@ The kinematics module is the parent module for all code related to sampling the 
 The submodules are:
 
 - [excitation](./excitation.md)
+- [angle](,/angle.md)
 - [pipeline](./pipeline.md)
 - [reaction](./reaction.md)

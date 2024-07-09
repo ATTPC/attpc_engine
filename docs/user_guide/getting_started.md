@@ -25,12 +25,14 @@ from attpc_engine.kinematics import (
     KinematicsPipeline,
     KinematicsTargetMaterial,
     ExcitationGaussian,
+    PolarUniform,
     run_kinematics_pipeline,
     Reaction,
 )
 from attpc_engine import nuclear_map
 from spyral_utils.nuclear.target import TargetData, GasTarget
 from pathlib import Path
+import numpy as np
 
 output_path = Path("./output/kinematics/c16dd_d2_300Torr_184MeV.h5")
 
@@ -51,6 +53,7 @@ pipeline = KinematicsPipeline(
         )
     ],
     [ExcitationGaussian(0.0, 0.001)], # No width to ground state
+    [PolarUniform(0.0, np.pi)], # Full angular range 0 deg to 180 deg
     beam_energy=184.131, # MeV
     target_material=KinematicsTargetMaterial(
         material=target, z_range=(0.0, 1.0), rho_sigma=0.007
@@ -82,7 +85,7 @@ nevents = 10000
 beam_energy = 184.131 # MeV
 ```
  
-Now were ready to define our kinematics Pipeline. The first argument of the Pipeline is a list of steps, where each step is either a Reaction or Deacy. The first element of the list must *always* be a Reaction, and all subsequent steps are *always* Decays. The residual of the previous step is *always* the parent of the next step. The Pipeline will attempt to validate this information for you. We also must define a list of ExcitationDistribution objects. These describe the state in the residual that is populated by each Reaction/Decay. There is exactly *one* distribution per step. There are two types of predefined ExcitationDistributions (ExcitationGaussian and ExcitationUniform), but others can be implemented by implementing theExcitationDistribution protocol. We also define our KinematicsTargetMaterial, which includes our gas target, as well as the allowed space within the target for our reaction vertex (range in z in meters and standard deviation of cylindrical &rho; in meters).
+Now were ready to define our kinematics Pipeline. The first argument of the Pipeline is a list of steps, where each step is either a Reaction or Deacy. The first element of the list must *always* be a Reaction, and all subsequent steps are *always* Decays. The residual of the previous step is *always* the parent of the next step. The Pipeline will attempt to validate this information for you. We also must define a list of ExcitationDistribution objects. These describe the state in the residual that is populated by each Reaction/Decay. There is exactly *one* distribution per step. There are two types of predefined ExcitationDistributions (ExcitationGaussian and ExcitationUniform), but others can be implemented by implementing the ExcitationDistribution protocol. Similarly, we use PolarUniform to define a uniform polar angle distribution from 0 degrees to 180 degrees in the center of mass frame (technically, this is from -1 to 1 in cos(polar)). We also define our KinematicsTargetMaterial, which includes our gas target, as well as the allowed space within the target for our reaction vertex (range in z in meters and standard deviation of cylindrical &rho; in meters).
 
 ```python
 pipeline = KinematicsPipeline(
@@ -96,6 +99,7 @@ pipeline = KinematicsPipeline(
     ],
     # Define our excitations
     [ExcitationGaussian(0.0, 0.0)], # No width to ground state
+    [PolarUniform(0.0, np.pi)], # Full angular range 0 deg to 180 deg
     beam_energy=184.131, # MeV
     target_material=KinematicsTargetMaterial(
         material=target, z_range=(0.0, 1.0), rho_sigma=0.007
