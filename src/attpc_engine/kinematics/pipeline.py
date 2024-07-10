@@ -1,5 +1,6 @@
 from .reaction import Reaction, Decay
 from .excitation import ExcitationDistribution
+from .angle import PolarDistribution
 
 from spyral_utils.nuclear.target import GasTarget
 import numpy as np
@@ -87,6 +88,9 @@ class KinematicsPipeline:
         The excited state to populate in the Reaction residual or Decay residual_2.
         The number of excitations should be the same as the number of steps, and the order
         of the excitations and steps should be the same.
+    polar_dists: list[PolarDistribution]
+        The angular distributions to sample from. Currently we only support uniform distributions
+        in cos(polar), however, it is possible that in the future we may support more complex distributions!
     beam_energy: float
         The initial (accelerator) beam energy in MeV
     target_material: KinematicsTargetMaterial | None
@@ -120,6 +124,7 @@ class KinematicsPipeline:
         self,
         steps: list[Reaction | Decay],
         excitations: list[ExcitationDistribution],
+        polar_dists: list[PolarDistribution],
         beam_energy: float,
         target_material: KinematicsTargetMaterial | None = None,
         event_sample_limit: int = 1000,
@@ -131,12 +136,17 @@ class KinematicsPipeline:
             raise PipelineError(
                 f"Pipeline must have the same number of steps (given {len(steps)}) and excitations (given {len(excitations)}!"
             )
+        elif len(steps) != len(polar_dists):
+            raise PipelineError(
+                f"Pipeline must have the same number of steps (given {len(steps)}) and polar angle distributions (given {len(polar_dists)})!"
+            )
         elif not isinstance(steps[0], Reaction):
             raise PipelineError("The first element in the pipeline must be a Reaction!")
 
         self.reaction: Reaction = steps[0]
         self.decays: list[Decay] = []
         self.excitations = excitations
+        self.polar_dists = polar_dists
         self.rng = default_rng()
         self.event_sample_limit = event_sample_limit
 
@@ -255,16 +265,16 @@ class KinematicsPipeline:
 
         return Sample(
             beam_energy=projectile_energy,
-            reaction_excitation=self.excitations[0].sample_energy(self.rng),
-            reaction_theta=self.excitations[0].sample_theta(self.rng),
+            reaction_excitation=self.excitations[0].sample(self.rng),
+            reaction_theta=self.polar_dists[0].sample(self.rng),
             reaction_phi=self.rng.uniform(0.0, pi2),
             vertex=vertex,
             decay_excitations=[
-                self.excitations[idx].sample_energy(self.rng)
+                self.excitations[idx].sample(self.rng)
                 for idx in range(1, len(self.excitations))
             ],
             decay_thetas=[
-                self.excitations[idx].sample_theta(self.rng)
+                self.polar_dists[idx].sample(self.rng)
                 for idx in range(1, len(self.excitations))
             ],
             decay_phis=[self.rng.uniform(0.0, pi2) for _ in self.decays],

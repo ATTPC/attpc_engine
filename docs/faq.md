@@ -15,8 +15,8 @@ In general attpc_engine is flexible, and can generate data for many different ty
 ## How can I look at the kinematics data without detector effects applied
 See [Converting to Dataframes](./user_guide/kinematics/index.md#converting-to-dataframes)
 
-## How can make attpc_engine output data into a different format
-See **Put detector ref here**
+## How to make attpc_engine output data into a different format
+See [Format the point cloud](./user_guide/detector/index.md#format-the-point-cloud)
 
 ## How do I update my version of attpc_engine
 
