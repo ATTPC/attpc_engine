@@ -8,7 +8,7 @@ class PolarDistribution(Protocol):
 
     Note that for polar angle distributions, the coordinate to sample
     is cos(polar) not polar (to cover solid angle uniformly). This means
-    hat the valid domain of these distributions is [0.0, pi]
+    that the valid domain of these distributions is [0.0, pi]
 
     Methods
     -------
