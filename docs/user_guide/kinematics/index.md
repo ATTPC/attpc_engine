@@ -24,7 +24,11 @@ In AT-TPC experiments, the detector often samples a range of beam energies due t
 
 ### Reaction Angles
 
-With a beam energy specified, the next step is to sample the reaction angles. This means sampling both spherical &theta; and &phi; in the center-of-mass frame of the incoming system (the target + projectile in the case of a Reaction, parent in the case of a Decay). The polar angle &theta; is uniformly distributed in cos(&theta;) from [-1, 1], while the azimuthal angle is uniformly distributed in the range [0, 2&pi;]. With the initial energy of the system and the outgoing angles, the system is completely described and the energies of the products can be found using simple conservation of momentum and energy. In a Reaction the angles of the ejectile is sampled. In a Decay the angles of the input product are sampled.
+With a beam energy specified, the next step is to sample the reaction angles. This means sampling both spherical &theta; and &phi; in the center-of-mass frame of the incoming system (the target + projectile in the case of a Reaction, parent in the case of a Decay). 
+
+The polar angle (&theta;) distribution can be described using the PolarDistribution protocol, as described [here](../../api/kinematics/angle.md). Currently, the only type of polar distribution is uniform in cos(polar). However, this is extensible, and could be used to describe more complicated angular distributions.
+
+The azimuthal angle is uniformly distributed in the range [0, 2&pi;]. With the initial energy of the system and the outgoing angles, the system is completely described and the energies of the products can be found using simple conservation of momentum and energy. In a Reaction the angles of the ejectile is sampled. In a Decay the angles of the input product are sampled.
 
 ### Propogation through the Chain
 
@@ -51,4 +55,4 @@ By default, the kinematics simulation writes data out to the [HDF5](https://www.
 convert-kinematics <your_hdf5_file> <output_parquet_file>
 ```
 
-Make sure you have your virtual environment with attpc_conduit installed active!
+Make sure you have your virtual environment with attpc_engine installed active!

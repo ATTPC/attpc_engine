@@ -28,6 +28,7 @@ nav:
     - kinematics:
       - About kinematics: api/kinematics/index.md
       - excitation: api/kinematics/excitation.md
+      - angle: api/kinematics/angle.md
       - pipeline: api/kinematics/pipeline.md
       - reaction: api/kinematics/reaction.md
   - FAQ: faq.md

@@ -13,4 +13,6 @@ from .excitation import (
     ExcitationBreitWigner,
 )
 
+from .angle import PolarDistribution, PolarUniform
+
 from .reaction import Reaction, Decay

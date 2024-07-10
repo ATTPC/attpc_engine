@@ -1,6 +1,7 @@
 from attpc_engine.kinematics import (
     KinematicsPipeline,
     ExcitationGaussian,
+    PolarUniform,
     Reaction,
     Decay,
 )
@@ -59,6 +60,11 @@ def test_pipeline():
                 ExcitationGaussian(0.0, 1.25),
                 ExcitationGaussian(0.0, 0.0),
             ],
+            [
+                PolarUniform(0.0, np.pi),
+                PolarUniform(0.0, np.pi),
+                PolarUniform(0.0, np.pi),
+            ],
             24.0,
         )
         vertex, result = pipeline.run()
@@ -75,7 +81,7 @@ def test_pipeline():
         assert False
 
 
-def test_pipeline_length():
+def test_pipeline_ex_length():
     # Test if we catch length errors
     try:
         pipeline = KinematicsPipeline(
@@ -91,6 +97,10 @@ def test_pipeline_length():
                 ),
             ],
             [ExcitationGaussian(16.8, 0.2)],
+            [
+                PolarUniform(0.0, np.pi),
+                PolarUniform(0.0, np.pi),
+            ],
             24.0,
         )
         pipeline.run()
@@ -98,6 +108,35 @@ def test_pipeline_length():
         pass
     else:
         print("Failed test of matching Excitations/Steps")
+        assert False
+
+
+def test_pipeline_pl_length():
+    # Test if we catch length errors
+    try:
+        pipeline = KinematicsPipeline(
+            [
+                Reaction(
+                    target=nuclear_map.get_data(5, 10),
+                    projectile=nuclear_map.get_data(2, 3),
+                    ejectile=nuclear_map.get_data(2, 4),
+                ),
+                Decay(
+                    parent=nuclear_map.get_data(5, 9),
+                    residual_1=nuclear_map.get_data(2, 4),
+                ),
+            ],
+            [ExcitationGaussian(16.8, 0.2), ExcitationGaussian(0.0, 0.0)],
+            [
+                PolarUniform(0.0, np.pi),
+            ],
+            24.0,
+        )
+        pipeline.run()
+    except PipelineError:
+        pass
+    else:
+        print("Failed test of matching Polar Dists./Steps")
         assert False
 
 
@@ -117,6 +156,10 @@ def test_pipeline_chain():
                 ),
             ],
             [ExcitationGaussian(16.8, 0.2), ExcitationGaussian(0.0, 0.0)],
+            [
+                PolarUniform(0.0, np.pi),
+                PolarUniform(0.0, np.pi),
+            ],
             24.0,
         )
         pipeline.run()
@@ -143,6 +186,10 @@ def test_pipeline_order():
                 ),
             ],
             [ExcitationGaussian(16.8, 0.2), ExcitationGaussian(0.0, 0.0)],
+            [
+                PolarUniform(0.0, np.pi),
+                PolarUniform(0.0, np.pi),
+            ],
             24.0,
         )
         result = pipeline.run()
@@ -170,6 +217,10 @@ def test_pipeline_sample_limit():
             ],
             [
                 ExcitationGaussian(16.8, 0.2),
+            ],
+            [
+                PolarUniform(0.0, np.pi),
+                PolarUniform(0.0, np.pi),
             ],
             2.0,
         )

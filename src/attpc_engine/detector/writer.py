@@ -3,7 +3,6 @@ from pathlib import Path
 
 import numpy as np
 import h5py as h5
-import os
 
 from .parameters import Config
 from .response import apply_response, get_response
@@ -40,7 +39,7 @@ class SimulationWriter(Protocol):
         """
         pass
 
-    def get_directory_name(self) -> Path:
+    def get_directory_name(self) -> Path:  # type: ignore
         """
         Returns directory that point cloud files are written to.
         """
@@ -56,9 +55,9 @@ class SimulationWriter(Protocol):
 @njit
 def convert_to_spyral(
     points: np.ndarray,
-    window_edge: float,
+    window_edge: int,
     mm_edge: int,
-    length: int,
+    length: float,
     response: np.ndarray,
     pad_centers: np.ndarray,
     adc_threshold: int,
@@ -75,7 +74,7 @@ def convert_to_spyral(
         The windows edge of the detector in time buckets.
     mm_edge: int
         The micromegas edge of the detector in time buckets.
-    length: int
+    length: float
         Length of active volume of detector in meters
     response: np.ndarray
         Response of GET electronics.
@@ -154,7 +153,9 @@ class SpyralWriter:
         written to has the first and last written events as attributes.
     """
 
-    def __init__(self, directory_path: Path, config: Config, max_file_size: int = 5e9):
+    def __init__(
+        self, directory_path: Path, config: Config, max_file_size: int = int(5e9)
+    ):
         self.directory_path: Path = directory_path
         self.response: np.ndarray = get_response(config).copy()
         self.max_file_size: int = max_file_size
