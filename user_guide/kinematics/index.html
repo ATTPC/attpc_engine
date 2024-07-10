@@ -938,6 +938,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api/kinematics/angle/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    angle
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/kinematics/pipeline/" class="md-nav__link">
         
   
@@ -1163,7 +1184,9 @@
 <h3 id="the-beam-energy">The Beam Energy</h3>
 <p>In AT-TPC experiments, the detector often samples a range of beam energies due to the active target. That is, as the beam travels through the gas, it loses energy until it finally undergoes a reaction. To simulate this effect, you can specify a target material and the range of z-positions over which the reaction can take place (see <a href="../../api/kinematics/pipeline/">here</a>). The simulation will then uniformly sample along that z-range and calculate the beam energy for a given z. As an additional effect, you can specify a standard deviation in cylindrical &rho; over which to sample a beam offset (simulate a beam spot) in a normal distribution. The beam is assumed to be uniformly distributed in cylindrical &theta;. Note that the &rho; sampling has no effect on the beam energy. The beam is assumed to be travelling parallel to the beam axis.</p>
 <h3 id="reaction-angles">Reaction Angles</h3>
-<p>With a beam energy specified, the next step is to sample the reaction angles. This means sampling both spherical &theta; and &phi; in the center-of-mass frame of the incoming system (the target + projectile in the case of a Reaction, parent in the case of a Decay). The polar angle &theta; is uniformly distributed in cos(&theta;) from [-1, 1], while the azimuthal angle is uniformly distributed in the range [0, 2&pi;]. With the initial energy of the system and the outgoing angles, the system is completely described and the energies of the products can be found using simple conservation of momentum and energy. In a Reaction the angles of the ejectile is sampled. In a Decay the angles of the input product are sampled.</p>
+<p>With a beam energy specified, the next step is to sample the reaction angles. This means sampling both spherical &theta; and &phi; in the center-of-mass frame of the incoming system (the target + projectile in the case of a Reaction, parent in the case of a Decay). </p>
+<p>The polar angle (&theta;) distribution can be described using the PolarDistribution protocol, as described <a href="../../api/kinematics/angle/">here</a>. Currently, the only type of polar distribution is uniform in cos(polar). However, this is extensible, and could be used to describe more complicated angular distributions.</p>
+<p>The azimuthal angle is uniformly distributed in the range [0, 2&pi;]. With the initial energy of the system and the outgoing angles, the system is completely described and the energies of the products can be found using simple conservation of momentum and energy. In a Reaction the angles of the ejectile is sampled. In a Decay the angles of the input product are sampled.</p>
 <h3 id="propogation-through-the-chain">Propogation through the Chain</h3>
 <p>In the above we we're mainly disucssing a single step. Howeve, you may be wondering how this affects subsequent steps, that is how we propogate the result of sampling the Reaction to the Decay. This is done by taking the resulting kinematics of the residual from the Reaction and passing them to the parent of the Decay. You can think of it as setting the "beam energy" for the Decay.</p>
 <h3 id="excitations">Excitations</h3>
@@ -1179,7 +1202,7 @@
 <p>By default, the kinematics simulation writes data out to the <a href="https://www.hdfgroup.org/">HDF5</a> format, which works really well for storing the data in a neat, clean structure that is easy to parse in the next step of the simulation. However, this format is not ideal for analyzing; it is difficult to extract and the values stored are not well described in general. To support analyzing the output of the kinematics, a script is provided with the install to convert the HDF5 output to a dataframe in the <a href="https://parquet.apache.org/">Parquet</a> format, which can then be opened using many popular dataframe libraries (pandas, polars, etc.). Usage is:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>convert-kinematics<span class="w"> </span>&lt;your_hdf5_file&gt;<span class="w"> </span>&lt;output_parquet_file&gt;
 </span></code></pre></div>
-<p>Make sure you have your virtual environment with attpc_conduit installed active!</p>
+<p>Make sure you have your virtual environment with attpc_engine installed active!</p>
 
 
 
