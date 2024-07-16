@@ -218,6 +218,8 @@ class SpyralWriter:
         dset.attrs["ic_integral"] = -1.0
         dset.attrs["ic_centroid"] = -1.0
 
+        dset.flush()
+
     def set_number_of_events(self) -> None:
         """
         Writes the first and last written events as attributes to the current
