@@ -141,8 +141,8 @@ from attpc_engine import nuclear_map
 from spyral_utils.nuclear.target import TargetData, GasTarget
 from pathlib import Path
 
-input_path = "output/kinematics/c16dd_d2_300Torr_184MeV.h5"
-output_path = Path("output/detector/run_0001.h5")
+input_path = "./output/kinematics/c16dd_d2_300Torr_184MeV.h5"
+output_path = Path("./output/detector/run_0001.h5")
 
 
 gas = GasTarget(TargetData([(1, 2, 2)], pressure=300.0), nuclear_map)
