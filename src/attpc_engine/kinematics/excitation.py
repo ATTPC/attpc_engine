@@ -60,7 +60,6 @@ class ExcitationGaussian:
         centroid: float = 0.0,
         width: float = 0.0,
     ):
-
         self.centroid = centroid
         self.width = width  # FWHM
         self.sigma = self.width / 2.355
