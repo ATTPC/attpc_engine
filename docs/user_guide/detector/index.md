@@ -1,26 +1,21 @@
 # Detector system
 
-The detector system applies detector and electronics effects to every event in the input kinematics file, generated from the kinematics system, to simulate how they would look in the AT-TPC. It is a Monte-Carlo simulation that aims to capture the overarching behavior of the detector and its electronics, not mimic their exact behavior which is horrendously complicated and not completely understood. The detector system code is based on code developed by Daniel Bazin originally in Igor Pro and includes effects pointed out by Adam Anthony in his [thesis](https://ezproxy.msu.edu/login?url=https://www.proquest.com/pqdtglobal1/dissertations-theses/fission-lead-region/docview/2855740534/sem-2?accountid=12598).
+The detector system applies AT-TPC specific detector and electronics effects to every event in the input kinematics file, generated from the kinematics system, to simulate how they would look in the AT-TPC. It is a Monte-Carlo simulation that aims to capture the overarching behavior of the detector and its electronics, not mimic their exact behavior which is horrendously complicated and not completely understood. The detector system code is based on code developed by Daniel Bazin originally in Igor Pro and includes effects pointed out by Adam Anthony in his [thesis](https://ezproxy.msu.edu/login?url=https://www.proquest.com/pqdtglobal1/dissertations-theses/fission-lead-region/docview/2855740534/sem-2?accountid=12598).
 
-# Output
+## Core steps of detector system
 
-The detector system outputs a HDF5 file with a point cloud for each event and some IC related attributes. This ensures that the output can be directly fed into Spyral for analysis. Note that this means that the point cloud construction phase of Spyral should not be run! The HDF5 file generated from the detector system simulation should begin the Spyral analysis with clustering.
+The detector system code simulates an event by going through a series of steps to ultimately produce its point cloud. For each event, the detector system:
 
-It is worth elaborating why the detector system outputs point clouds instead of raw traces. Using raw traces would allow for the full testing of the Spyral analysis beginning with the point cloud reconstruction phase. The main problem with traces is that they simply take up too much disk space. The objective of a Monte-Carlo simulation is to simulate a phenomena enough times that statistical error is essentially removed and whatever is observed is due to the phenomena itself. To this end, it is often desireable to simulate hundreds of thousands of events in the AT-TPC. To prevent egregiously large trace files, the point cloud reconstruction can be cooked into the simulation to produce orders of magnitude smaller point cloud files. To maintain speed, the point clouds are simulated directly rather than simulating the traces and applying Spyral's point cloud construction phase to them. Almost certainly analysis effects due to the point cloud construciton phase are lost because of this. However, the decrease in file size using point clouds is too great to ignore.
-
-# Core steps of detector system
-
-The detector system code simulates an event by going through a series of steps to ultimately produce its point cloud. For each nucleus in the exit channel of an event, the detector system:
-
-1. Simulates the track of the nucleus by solving its equation of motion in the AT-TPC
-2. Determines how many electrons are created at each point of the nucleus' track
-3. Converts the z coordinate of each point to the corresponding time bucket
-3. Transports each point of the nucleus' track to the pad plane, applying diffusion if necessary, to construct its point cloud
-4. Converts the point cloud to Spyral format
+1. Generate the trajectory of the each nucleus in the exit channel of the event by solving its equation of motion in the AT-TPC with a fine grained-timestep
+2. Determines how many electrons are created at each point of each nucleus' trajectory
+3. Converts the z coordinate of each point in each trajectory to a GET electronics sampling-frequency based Time Bucket using the electron drift velocity
+3. Transports each point of the nucleus' trajectory to the pad plane, applying diffusion if requested, to identify the sensing pad for each timestep
+5. Form the point cloud from all of the trajectories
+4. Write the point cloud to disk
 
 We can now describe each step in greater detail.
 
-# Track simulation
+## Track simulation
 
 The AT-TPC contains an inherent electric field parallel to the beam axis. It is also usually placed inside a solenoid that provides a magnetic field in the same direction. This means that a charged particle in the AT-TPC has an equation of motion given by the relativistic Lorentz force
 
@@ -32,7 +27,7 @@ where $\pmb{p}$ is the relativistic momentum, $\pmb{v}$ is the three velocity, $
 
 The equation of motion is subject to the physical boundaries of the detector and the condition that the nucleus has more than 1 eV of kinetic energy. Solutions are provided by the solver at time steps of 1e-10 s.
 
-# Electron creation
+## Electron creation
 
 Using $\gamma \beta$ provided by the ODE solver at each time step, the number of electrons created through ionization of the gas by the nucleus can be calculated. $\gamma \beta$ is used to find $\beta$ through manipulation of the $\gamma$ factor equation. $\gamma \beta$ is divided by $\beta$ to uncouple $\gamma$ which is then used in the relativistic kinetic energy formula to find the kinetic energy of the nucleus at that point. The difference in energy between two successive points in the trajectory is defined as the energy lost by the nucleus at the point at the later time.
 
@@ -40,7 +35,7 @@ With knowledge of the energy lost by the nucleus at the points in its trajectory
 
 Only an integer amount of electrons can be made. Trunction is applied and points with less than one electron made are removed from the track.
 
-# Convert z position to time buckets
+## Convert z position to time buckets
 
 The GET electronics records information in discrete time intervals called time buckets. The trajectory of the nucleus returned from the ODE solver is described by three Cartesian coordinates. The z coordinate of each point then must be converted to time buckets. The formula to convert the z coordinate $z_{coord}$ to time buckets $z_{tb}$ is given by 
 
@@ -52,9 +47,9 @@ where $l$ is the length of the AT-TPC active volume, $v_{e}$ is the electron dri
 
 Two important points are made about this equation. First, $z_{coord}$ is subtracted from $l$. This is because the coordinate system used has the AT-TPC window at $z=0$ and the micromegas at $z=l$ and time buckets are recorded with respect to the micromegas (electrons drift towards it). Second, the resulting time bucket has $m_{tb}$ added to it. This is due to the fact that the micromegas edge of the detector does not necessarily correspond to a time bucket of zero. A similar statement can be made for the window edge of the detector; it does not necessarily correspond to the maximum recordable time bucket.
 
-# Point cloud construction
+## Point cloud construction
 
-Each point in the point cloud has three pieces of information recorded: the pad it belongs to, how many electrons it contains, and its time bucket. Point cloud construction primarily deals with determining the first two from the calculated points in the nucleus' trajectory. There are two ways to construct a point cloud, and we start by describing the simple case of no transverse diffusion.
+A point cloud is an Nx3 matrix, where each row corresponds to a point containing the following information: sensing pad number, detection time in GET Time Buckets, and the number of electrons detected. Point cloud construction primarily deals with determining the first two from the calculated points in the nucleus' trajectory. There are two ways to create a point cloud, and we start by describing the simple case of no transverse diffusion.
 
 When the transverse diffusion is specified to be zero, point clouds are constructed from what we call "point transport" where the trajectory is projected onto the pad plane and the pad that each point hits is found from a lookup table. In this scheme, the electrons are not spread and hence the number of electrons that hit each pad is trivially the number of electrons at each point of the trajectory.
 
@@ -70,8 +65,16 @@ Despite the transport schema chosen, each point in the cloud has its correspondi
 
 In this simulation, we only allow for transverse diffusion. Although longitudinal diffusion exists, it is not included. The reason is that it was found in early iterations of this simulation to not matter. Only for large longitudinal diffusion values noticeable effects were observed.
 
-# Format the point cloud
+## Why Point clouds
 
-The final step of the detector simulation is to convert the simulated point cloud to Spyral format. We will avoid discussing what Spyral exactly expects since it is written in the Spyral documentation. We want to point out, though, that the defined SimulationWriter class allows for the user to easily implement a custom converter to write the simulated data to any format, or include any extra information, they may want. This is highly relevant for individuals who have tweaked Spyral. For example, take someone who has changed base Spyral to write point clouds that inlcude extra information. In order for the simulation to work with their code, they will have to write a custom converter that adds the extra fields to the simulated point clouds.
+It is worth elaborating why the detector system outputs point clouds instead of raw traces. Using raw traces would allow for the full testing of AT-TPC analysis beginning with the signal analysis. As with any Monte Carlo simulation, attpc_engine needs enough samples to converge upon a meaningful result. To this end, it is often desireable to simulate a large numbber (more than 100,000) of events in the AT-TPC. Traces require such a large memory footprint, both on disk and in memory, that they are prohibitive to simulating enough samples to reach convergence. Additionally, methods which effectively mimic the True response of the AT-TPC pad plane and electronics are often dubious, relying on approximations that are hard to validate.
 
-The only Spyral point cloud fields that require special consideration are the amplitude and integral of the point. Recall that the simulation has only recorded the number of electrons at each point. In real data, the amplitude and integral refer to the electrical signal induced by the drifting electrons on a pad. It is from such a signal that a real point cloud is created. This is to say that in order to find these two parameters from the number of electrons created at a point, we need to know the response of the electronics. At the present time, the simulation uses the theoretically derived response function provided by the chip manufacturer to estimate these quantities.
+## Writing the Point cloud to disk
+
+The final step of the process is to write the simulated detector response to disk. attpc_engine aims to be analysis agnostic, and as such does not fomrally define the format of the output. Instead, attpc_engine provides a `SimulationWriter` [protocol](https://typing.readthedocs.io/en/latest/spec/protocol.html#protocols) class. Users can define their own writer, so long as it implements the methods required by the `SimulationWriter` protocol.
+
+### Use with Spyral
+
+For convience, attpc_engine includes a `SpyralWriter`, which will output a HDF5 file formatted to mimic [Spyral](https://attpc.github.io/Spyral), the AT-TPC group-supported analysis framework. `SpyralWriter` also includes the useful feature of splitting the output into multiple files based on file size, which can help take advantage of parallel analysis pipelines. Note that attpc_engine does not claim to provide values in the integral or amplitude fields of a Spyral point cloud that will match real data; `SpyralWriter` use the [theoretical response function](https://www.sciencedirect.com/science/article/pii/S0168900216309408?casa_token=DAWbhPvX49MAAAAA:Zen7nFs-pgG9wu__g0rrzus01B1pa7ZYspbz_KOnn-dZyhXNglEqtgywFKwYrvKKsIwEY10n49XV) of the GET electronics to make an attempt to approximate the amplitude and integral, but this should be regarded as dubious at best.
+
+Given that attpc_engine outputs point clouds, the results should not be run through the PointcloudPhase, rather starting directly with the ClusterPhase. Note that because Spyral expects trace data, one will need to "fake" the trace datapath. The simplest way to do this is to point the trace path to the Pointcloud directory of the workspace. Just be sure not to run the PointcloudPhase in this case!
