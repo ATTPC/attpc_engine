@@ -38,7 +38,7 @@ In some places in the code you may notice the comment `# type: ignore`. The attp
 
 ### Formatting and Linting
 
-attpc_engine uses [Ruff](https://docs.astral.sh/ruff/) for both formatting and linting. The appropriate version of ruff and our rules are included in the pyproject.toml file, so simply install and everything should be good to go. If using VS Code use the Ruff Extension for support in IDE.
+attpc_engine uses [Ruff](https://docs.astral.sh/ruff/) for both formatting and linting. The appropriate version of ruff and our rules are included in the pyproject.toml file, so simply install and everything should be good to go. If using VS Code use the Ruff Extension for support in-IDE.
 
 ### Files
 
