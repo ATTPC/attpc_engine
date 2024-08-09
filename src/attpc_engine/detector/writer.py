@@ -86,6 +86,7 @@ def convert_to_spyral(
     Returns
     -------
     np.ndarray
+        The point cloud
     """
 
     storage = np.empty((len(points), 8))
@@ -230,6 +231,11 @@ class SpyralWriter:
     def get_directory_name(self) -> Path:
         """
         Returns directory that point cloud files are written to.
+
+        Returns
+        -------
+        pathlib.Path
+            The path to the point cloud directory
         """
         return self.directory_path
 

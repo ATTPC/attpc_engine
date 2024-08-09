@@ -12,8 +12,8 @@ KE_LIMIT = 1e-6  # 1 eV
 def equation_of_motion(
     t: float,
     state: np.ndarray,
-    Bfield: float,
-    Efield: float,
+    bfield: float,
+    efield: float,
     target: GasTarget,
     ejectile: NucleusData,
 ) -> np.ndarray:
@@ -27,9 +27,9 @@ def equation_of_motion(
         time step
     state: ndarray
         the state of the particle (x,y,z,gvx,gvy,gvz)
-    Bfield: float
+    bfield: float
         the magnitude of the magnetic field
-    Efield: float
+    efield: float
         the magnitude of the electric field
     target: Target
         the material through which the particle travels
@@ -62,9 +62,9 @@ def equation_of_motion(
     results[0] = velo[0]
     results[1] = velo[1]
     results[2] = velo[2]
-    results[3] = (q_m * velo[1] * Bfield - deceleration * unit_vector[0]) / C
-    results[4] = (q_m * (-1.0 * velo[0] * Bfield) - deceleration * unit_vector[1]) / C
-    results[5] = (q_m * Efield - deceleration * unit_vector[2]) / C
+    results[3] = (q_m * velo[1] * bfield - deceleration * unit_vector[0]) / C
+    results[4] = (q_m * (-1.0 * velo[0] * bfield) - deceleration * unit_vector[1]) / C
+    results[5] = (q_m * efield - deceleration * unit_vector[2]) / C
 
     return results
 
@@ -73,8 +73,8 @@ def equation_of_motion(
 def stop_condition(
     t: float,
     state: np.ndarray,
-    Bfield: float,
-    Efield: float,
+    bfield: float,
+    efield: float,
     target: GasTarget,
     ejectile: NucleusData,
 ) -> float:
@@ -117,8 +117,8 @@ def stop_condition(
 def forward_z_bound_condition(
     t: float,
     state: np.ndarray,
-    Bfield: float,
-    Efield: float,
+    bfield: float,
+    efield: float,
     target: GasTarget,
     ejectile: NucleusData,
 ) -> float:
@@ -157,8 +157,8 @@ def forward_z_bound_condition(
 def backward_z_bound_condition(
     t: float,
     state: np.ndarray,
-    Bfield: float,
-    Efield: float,
+    bfield: float,
+    efield: float,
     target: GasTarget,
     ejectile: NucleusData,
 ) -> float:
@@ -197,8 +197,8 @@ def backward_z_bound_condition(
 def rho_bound_condition(
     t: float,
     state: np.ndarray,
-    Bfield: float,
-    Efield: float,
+    bfield: float,
+    efield: float,
     target: GasTarget,
     ejectile: NucleusData,
 ) -> float:

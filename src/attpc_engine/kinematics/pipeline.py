@@ -212,7 +212,7 @@ class KinematicsPipeline:
         bool
             True if allowed, False otherwise
         """
-        Q = (
+        q_value = (
             (self.reaction.projectile.mass + projectile_energy)
             + self.reaction.target.mass
             - (
@@ -222,10 +222,10 @@ class KinematicsPipeline:
             )
         )
         for idx, decay in enumerate(self.decays):
-            Q += -1.0 * (
+            q_value += -1.0 * (
                 decay.residual_1.mass + decay.residual_2.mass + excitations[idx + 1]
             )
-        return Q >= 0.0
+        return q_value >= 0.0
 
     def sample(self) -> Sample:
         """Sample the pipeline parameters
