@@ -141,8 +141,8 @@ from attpc_engine import nuclear_map
 from spyral_utils.nuclear.target import TargetData, GasTarget
 from pathlib import Path
 
-input_path = "./output/kinematics/c16dd_d2_300Torr_184MeV.h5"
-output_path = Path("./output/detector/run_0001.h5")
+input_path = Path("./output/kinematics/c16dd_d2_300Torr_184MeV.h5")
+output_path = Path("./output/detector/")
 
 
 gas = GasTarget(TargetData([(1, 2, 2)], pressure=300.0), nuclear_map)
@@ -164,13 +164,13 @@ electronics = ElectronicsParams(
     shaping_time=1000,
     micromegas_edge=10,
     windows_edge=560,
-    adc_threshold=40.0,
+    adc_threshold=40,
 )
 
 pads = PadParams()
 
 config = Config(detector, electronics, pads)
-writer = SpyralWriter(output_path, config)
+writer = SpyralWriter(output_path, config, 1_000_000_000)
 
 def main():
     run_simulation(
@@ -183,10 +183,10 @@ if __name__ == "__main__":
     main()
 ```
 
-Just like in the kinematics script, we start off by importing a whole bunch of code. Next we define our kinematics input (which is the output of the kinematics script) and an output path. Note here we've chosen to make our detector output file name match a format expected by the Spyral analysis framework.
+Just like in the kinematics script, we start off by importing a whole bunch of code. Next we define our kinematics input (which is the output of the kinematics script) and an output path. Note that for the output path we simply specify a directory; this is because our writer will handle breaking up the output data into reasonably sized files.
 
 ```python
-input_path = "output/kinematics/c16dd_d2_300Torr_184MeV.h5"
+input_path = Path("output/kinematics/c16dd_d2_300Torr_184MeV.h5")
 output_path = Path("output/detector/run_0001.h5")
 ```
 
@@ -216,7 +216,7 @@ electronics = ElectronicsParams(
     shaping_time=1000,
     micromegas_edge=10,
     windows_edge=560,
-    adc_threshold=40.0,
+    adc_threshold=40,
 )
 
 pads = PadParams()
@@ -224,10 +224,10 @@ pads = PadParams()
 config = Config(detector, electronics, pads)
 ```
 
-Note that by not passing any arguments to `PadParams` we are using the default pad description that is bundled with the package. See the [detector](./detector/index.md) guide for more details. For the output, we create a SpyralWriter object. This will take in the simulation data and convert it to match the format expected by the Spyral analysis.
+Note that by not passing any arguments to `PadParams` we are using the default pad description that is bundled with the package. See the [detector](./detector/index.md) guide for more details. For the output, we create a SpyralWriter object. This will take in the simulation data and convert it to match the format expected by the Spyral analysis. Note the final argument of the Writer; this is the maximum size of an individual file in bytes (here we've specified 1GB). The writer will then split our output up into many files, which will help later when trying to analyze the data with a framework like Spyral.
 
 ```python
-writer = SpyralWriter(output_path, config)
+writer = SpyralWriter(output_path, config, 1_000_000_000)
 ```
 
 Then, just like in the kinematics script we set up a main function and set it to be run when the script is processed

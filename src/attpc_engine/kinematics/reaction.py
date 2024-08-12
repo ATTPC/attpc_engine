@@ -92,13 +92,13 @@ class Reaction:
             projectile_energy * (projectile_energy + 2.0 * self.projectile.mass)
         )
         # Lorentz invariant total length (i.e. CoM system energy)
-        E_cm = np.sqrt(
+        e_cm = np.sqrt(
             (self.target.mass + projectile_energy + self.projectile.mass) ** 2.0
             - pz**2.0
         )
 
         outgoing_mass = self.ejectile.mass + self.residual.mass + residual_excitation
-        return outgoing_mass < E_cm
+        return outgoing_mass < e_cm
 
     def calculate(
         self,

@@ -36,9 +36,9 @@ Please use [type hints](https://docs.python.org/3/library/typing.html) to annota
 
 In some places in the code you may notice the comment `# type: ignore`. The attpc_engine development team uses type checking to help detect and eliminate issues in the codebase before they get deployed. However, many libraries don't provide a level of typing which allows for type checking. This comment will disable type checking and static type analysis for that line. It should only be used when it has been confirmed through testing that that line behaves as expected.
 
-### Formatting
+### Formatting and Linting
 
-attpc_engine uses the black formatter. The appropriate version of black is included in the pyproject.toml file, so simply install and everything should be good to go.
+attpc_engine uses [Ruff](https://docs.astral.sh/ruff/) for both formatting and linting. The appropriate version of ruff and our rules are included in the pyproject.toml file, so simply install and everything should be good to go. If using VS Code use the Ruff Extension for support in-IDE.
 
 ### Files
 

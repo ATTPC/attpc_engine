@@ -16,6 +16,7 @@ import h5py as h5
 from tqdm import trange
 from scipy.integrate import solve_ivp
 from numpy.random import default_rng, Generator
+from pathlib import Path
 
 # Time steps to solve ODE at. Each step is 1e-10 s
 TIME_STEPS = np.linspace(0, 10e-7, 10001)
@@ -311,7 +312,7 @@ class SimParticle:
 
 def run_simulation(
     config: Config,
-    input_path: str,
+    input_path: Path,
     writer: SimulationWriter,
 ):
     """Run the simulation
@@ -323,7 +324,7 @@ def run_simulation(
      ----------
     config: Config
         The simulation configuration
-    input_path: str
+    input_path: pathlib.Path
         Path to HDF5 file containing kinematics
     writer: SimulationWriter
         An object which implements the SimulationWriter Protocol

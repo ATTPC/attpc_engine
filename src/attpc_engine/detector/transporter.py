@@ -224,8 +224,6 @@ def transverse_transport(
     if len(points) == 0:
         return points
 
-    pads = np.full(len(mesh), -1, dtype=int)
-
     for idx, pixel in enumerate(mesh):
         # Find pad number of hit pad, if it exists
         index_x, index_y = position_to_index(grid_edges, pixel)

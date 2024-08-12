@@ -1,6 +1,6 @@
 [project]
 name = "attpc_engine"
-version = "0.1.7"
+version = "0.2.0"
 description = "AT-TPC Monte-Carlo simulation engine"
 authors = [
     {name = "Gordon McCann", email = "gordonmccann215@gmail.com"},
@@ -53,11 +53,15 @@ distribution = true
 test = [
     "pytest>=8.1.1",
 ]
-format = [
-    "black==24.4.0",
-]
 docs = [
     "mkdocs-material>=9.5.17",
     "mkdocstrings>=0.25.1",
     "mkdocstrings-python>=1.10.3",
 ]
+lint = [
+    "ruff>=0.5.7",
+]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "B", "N"]
+ignore = ["E501"]
