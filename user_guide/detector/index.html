@@ -407,6 +407,17 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Detector
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -416,6 +427,103 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#core-steps-of-detector-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      Core steps of detector system
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#track-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Track simulation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#electron-creation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Electron creation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#convert-z-position-to-time-buckets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Convert z position to time buckets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#point-cloud-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Point cloud construction
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-point-clouds" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why Point clouds
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-the-point-cloud-to-disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      Writing the Point cloud to disk
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing the Point cloud to disk">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#use-with-spyral" class="md-nav__link">
+    <span class="md-ellipsis">
+      Use with Spyral
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -961,6 +1069,92 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#core-steps-of-detector-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      Core steps of detector system
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#track-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Track simulation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#electron-creation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Electron creation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#convert-z-position-to-time-buckets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Convert z position to time buckets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#point-cloud-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Point cloud construction
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-point-clouds" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why Point clouds
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-the-point-cloud-to-disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      Writing the Point cloud to disk
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing the Point cloud to disk">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#use-with-spyral" class="md-nav__link">
+    <span class="md-ellipsis">
+      Use with Spyral
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -978,40 +1172,38 @@
 
 
 <h1 id="detector-system">Detector system</h1>
-<p>The detector system applies detector and electronics effects to every event in the input kinematics file, generated from the kinematics system, to simulate how they would look in the AT-TPC. It is a Monte-Carlo simulation that aims to capture the overarching behavior of the detector and its electronics, not mimic their exact behavior which is horrendously complicated and not completely understood. The detector system code is based on code developed by Daniel Bazin originally in Igor Pro and includes effects pointed out by Adam Anthony in his <a href="https://ezproxy.msu.edu/login?url=https://www.proquest.com/pqdtglobal1/dissertations-theses/fission-lead-region/docview/2855740534/sem-2?accountid=12598">thesis</a>.</p>
-<h1 id="output">Output</h1>
-<p>The detector system outputs a HDF5 file with a point cloud for each event and some IC related attributes. This ensures that the output can be directly fed into Spyral for analysis. Note that this means that the point cloud construction phase of Spyral should not be run! The HDF5 file generated from the detector system simulation should begin the Spyral analysis with clustering.</p>
-<p>It is worth elaborating why the detector system outputs point clouds instead of raw traces. Using raw traces would allow for the full testing of the Spyral analysis beginning with the point cloud reconstruction phase. The main problem with traces is that they simply take up too much disk space. The objective of a Monte-Carlo simulation is to simulate a phenomena enough times that statistical error is essentially removed and whatever is observed is due to the phenomena itself. To this end, it is often desireable to simulate hundreds of thousands of events in the AT-TPC. To prevent egregiously large trace files, the point cloud reconstruction can be cooked into the simulation to produce orders of magnitude smaller point cloud files. To maintain speed, the point clouds are simulated directly rather than simulating the traces and applying Spyral's point cloud construction phase to them. Almost certainly analysis effects due to the point cloud construciton phase are lost because of this. However, the decrease in file size using point clouds is too great to ignore.</p>
-<h1 id="core-steps-of-detector-system">Core steps of detector system</h1>
-<p>The detector system code simulates an event by going through a series of steps to ultimately produce its point cloud. For each nucleus in the exit channel of an event, the detector system:</p>
+<p>The detector system applies AT-TPC specific detector and electronics effects to every event in the input kinematics file, generated from the kinematics system, to simulate how they would look in the AT-TPC. It is a Monte-Carlo simulation that aims to capture the overarching behavior of the detector and its electronics, not mimic their exact behavior which is horrendously complicated and not completely understood. The detector system code is based on code developed by Daniel Bazin originally in Igor Pro and includes effects pointed out by Adam Anthony in his <a href="https://ezproxy.msu.edu/login?url=https://www.proquest.com/pqdtglobal1/dissertations-theses/fission-lead-region/docview/2855740534/sem-2?accountid=12598">thesis</a>.</p>
+<h2 id="core-steps-of-detector-system">Core steps of detector system</h2>
+<p>The detector system code simulates an event by going through a series of steps to ultimately produce its point cloud. For each event, the detector system:</p>
 <ol>
-<li>Simulates the track of the nucleus by solving its equation of motion in the AT-TPC</li>
-<li>Determines how many electrons are created at each point of the nucleus' track</li>
-<li>Converts the z coordinate of each point to the corresponding time bucket</li>
-<li>Transports each point of the nucleus' track to the pad plane, applying diffusion if necessary, to construct its point cloud</li>
-<li>Converts the point cloud to Spyral format</li>
+<li>Generate the trajectory of the each nucleus in the exit channel of the event by solving its equation of motion in the AT-TPC with a fine grained-timestep</li>
+<li>Determines how many electrons are created at each point of each nucleus' trajectory</li>
+<li>Converts the z coordinate of each point in each trajectory to a GET electronics sampling-frequency based Time Bucket using the electron drift velocity</li>
+<li>Transports each point of the nucleus' trajectory to the pad plane, applying diffusion if requested, to identify the sensing pad for each timestep</li>
+<li>Form the point cloud from all of the trajectories</li>
+<li>Write the point cloud to disk</li>
 </ol>
 <p>We can now describe each step in greater detail.</p>
-<h1 id="track-simulation">Track simulation</h1>
+<h2 id="track-simulation">Track simulation</h2>
 <p>The AT-TPC contains an inherent electric field parallel to the beam axis. It is also usually placed inside a solenoid that provides a magnetic field in the same direction. This means that a charged particle in the AT-TPC has an equation of motion given by the relativistic Lorentz force</p>
 <div class="arithmatex">\[ 
 \frac{d\pmb{p}}{dt} = q (\pmb{E} + \pmb{v} \times \pmb{B})
 \]</div>
 <p>where <span class="arithmatex">\(\pmb{p}\)</span> is the relativistic momentum, <span class="arithmatex">\(\pmb{v}\)</span> is the three velocity, <span class="arithmatex">\(\pmb{E}\)</span> is the electric field, and <span class="arithmatex">\(\pmb{B}\)</span> is the magnetic field. To prevent the ODE solver from calculating either very large or very small numbers, we actually divide both sides of this equation by the nucleus' rest mass and thus solve this differential equation for <span class="arithmatex">\(\gamma \beta\)</span>. </p>
 <p>The equation of motion is subject to the physical boundaries of the detector and the condition that the nucleus has more than 1 eV of kinetic energy. Solutions are provided by the solver at time steps of 1e-10 s.</p>
-<h1 id="electron-creation">Electron creation</h1>
+<h2 id="electron-creation">Electron creation</h2>
 <p>Using <span class="arithmatex">\(\gamma \beta\)</span> provided by the ODE solver at each time step, the number of electrons created through ionization of the gas by the nucleus can be calculated. <span class="arithmatex">\(\gamma \beta\)</span> is used to find <span class="arithmatex">\(\beta\)</span> through manipulation of the <span class="arithmatex">\(\gamma\)</span> factor equation. <span class="arithmatex">\(\gamma \beta\)</span> is divided by <span class="arithmatex">\(\beta\)</span> to uncouple <span class="arithmatex">\(\gamma\)</span> which is then used in the relativistic kinetic energy formula to find the kinetic energy of the nucleus at that point. The difference in energy between two successive points in the trajectory is defined as the energy lost by the nucleus at the point at the later time.</p>
 <p>With knowledge of the energy lost by the nucleus at the points in its trajectory, the electrons made can be found. The input W-value is the average energy needed to create an electron-ion pair in the gas, thus the energy lost at each point is divided by this value to find the electrons made. However, ionization is part statistical, so this number is taken as the mean of a normal distribution that is then sampled to find the actual number of electrons at each point. We say part statistical because it has been experimentally shown that the amount of electrons made does not follow purely statistical calculations. Therefore, the input Fano factor of the gas is a multiplicative constant that modifies the mean number of electrons made at each point in an attempt to capture the non-statistical nature of electron-ion pair creation in the gas.</p>
 <p>Only an integer amount of electrons can be made. Trunction is applied and points with less than one electron made are removed from the track.</p>
-<h1 id="convert-z-position-to-time-buckets">Convert z position to time buckets</h1>
+<h2 id="convert-z-position-to-time-buckets">Convert z position to time buckets</h2>
 <p>The GET electronics records information in discrete time intervals called time buckets. The trajectory of the nucleus returned from the ODE solver is described by three Cartesian coordinates. The z coordinate of each point then must be converted to time buckets. The formula to convert the z coordinate <span class="arithmatex">\(z_{coord}\)</span> to time buckets <span class="arithmatex">\(z_{tb}\)</span> is given by </p>
 <div class="arithmatex">\[ 
 z_{tb} = \frac{l - z_{coord}}{v_{e}} + m_{tb}
 \]</div>
 <p>where <span class="arithmatex">\(l\)</span> is the length of the AT-TPC active volume, <span class="arithmatex">\(v_{e}\)</span> is the electron drift velocity, and <span class="arithmatex">\(m_{tb}\)</span> is the micromegas time bucket. </p>
 <p>Two important points are made about this equation. First, <span class="arithmatex">\(z_{coord}\)</span> is subtracted from <span class="arithmatex">\(l\)</span>. This is because the coordinate system used has the AT-TPC window at <span class="arithmatex">\(z=0\)</span> and the micromegas at <span class="arithmatex">\(z=l\)</span> and time buckets are recorded with respect to the micromegas (electrons drift towards it). Second, the resulting time bucket has <span class="arithmatex">\(m_{tb}\)</span> added to it. This is due to the fact that the micromegas edge of the detector does not necessarily correspond to a time bucket of zero. A similar statement can be made for the window edge of the detector; it does not necessarily correspond to the maximum recordable time bucket.</p>
-<h1 id="point-cloud-construction">Point cloud construction</h1>
-<p>Each point in the point cloud has three pieces of information recorded: the pad it belongs to, how many electrons it contains, and its time bucket. Point cloud construction primarily deals with determining the first two from the calculated points in the nucleus' trajectory. There are two ways to construct a point cloud, and we start by describing the simple case of no transverse diffusion.</p>
+<h2 id="point-cloud-construction">Point cloud construction</h2>
+<p>A point cloud is an Nx3 matrix, where each row corresponds to a point containing the following information: sensing pad number, detection time in GET Time Buckets, and the number of electrons detected. Point cloud construction primarily deals with determining the first two from the calculated points in the nucleus' trajectory. There are two ways to create a point cloud, and we start by describing the simple case of no transverse diffusion.</p>
 <p>When the transverse diffusion is specified to be zero, point clouds are constructed from what we call "point transport" where the trajectory is projected onto the pad plane and the pad that each point hits is found from a lookup table. In this scheme, the electrons are not spread and hence the number of electrons that hit each pad is trivially the number of electrons at each point of the trajectory.</p>
 <p>When the transverse diffusion is non-zero, point clouds are constructed from the more involved "transverse transport" scheme. The electrons made at each point are smeared from a bivariate normal distribution over the pad plane. The standard deviation <span class="arithmatex">\(\sigma\)</span> of the bivariate distribution is the same for both the x and y directions and is given by</p>
 <div class="arithmatex">\[
@@ -1020,9 +1212,13 @@ z_{tb} = \frac{l - z_{coord}}{v_{e}} + m_{tb}
 <p>where D is the diffusion coefficient, <span class="arithmatex">\(t\)</span> is the average electron drift time (<span class="arithmatex">\(z_{tb}\)</span>), and <span class="arithmatex">\(E\)</span> is the magnitude of the electric field. See <a href="https://cds.cern.ch/record/154069?ln=en">Peisert and Sauli</a> for the derivation of this equation. The smearing is done via a discretized grid and the same lookup table is used to find which pad each pixel hits.</p>
 <p>Despite the transport schema chosen, each point in the cloud has its corresponding time bucket. This time bucket is truncated to an integer from the exact time bucket found in the previous step because the GET system records in discrete time samples.</p>
 <p>In this simulation, we only allow for transverse diffusion. Although longitudinal diffusion exists, it is not included. The reason is that it was found in early iterations of this simulation to not matter. Only for large longitudinal diffusion values noticeable effects were observed.</p>
-<h1 id="format-the-point-cloud">Format the point cloud</h1>
-<p>The final step of the detector simulation is to convert the simulated point cloud to Spyral format. We will avoid discussing what Spyral exactly expects since it is written in the Spyral documentation. We want to point out, though, that the defined SimulationWriter class allows for the user to easily implement a custom converter to write the simulated data to any format, or include any extra information, they may want. This is highly relevant for individuals who have tweaked Spyral. For example, take someone who has changed base Spyral to write point clouds that inlcude extra information. In order for the simulation to work with their code, they will have to write a custom converter that adds the extra fields to the simulated point clouds.</p>
-<p>The only Spyral point cloud fields that require special consideration are the amplitude and integral of the point. Recall that the simulation has only recorded the number of electrons at each point. In real data, the amplitude and integral refer to the electrical signal induced by the drifting electrons on a pad. It is from such a signal that a real point cloud is created. This is to say that in order to find these two parameters from the number of electrons created at a point, we need to know the response of the electronics. At the present time, the simulation uses the theoretically derived response function provided by the chip manufacturer to estimate these quantities.</p>
+<h2 id="why-point-clouds">Why Point clouds</h2>
+<p>It is worth elaborating why the detector system outputs point clouds instead of raw traces. Using raw traces would allow for the full testing of AT-TPC analysis beginning with the signal analysis. As with any Monte Carlo simulation, attpc_engine needs enough samples to converge upon a meaningful result. To this end, it is often desireable to simulate a large numbber (more than 100,000) of events in the AT-TPC. Traces require such a large memory footprint, both on disk and in memory, that they are prohibitive to simulating enough samples to reach convergence. Additionally, methods which effectively mimic the True response of the AT-TPC pad plane and electronics are often dubious, relying on approximations that are hard to validate.</p>
+<h2 id="writing-the-point-cloud-to-disk">Writing the Point cloud to disk</h2>
+<p>The final step of the process is to write the simulated detector response to disk. attpc_engine aims to be analysis agnostic, and as such does not fomrally define the format of the output. Instead, attpc_engine provides a <code>SimulationWriter</code> <a href="https://typing.readthedocs.io/en/latest/spec/protocol.html#protocols">protocol</a> class. Users can define their own writer, so long as it implements the methods required by the <code>SimulationWriter</code> protocol.</p>
+<h3 id="use-with-spyral">Use with Spyral</h3>
+<p>For convience, attpc_engine includes a <code>SpyralWriter</code>, which will output a HDF5 file formatted to mimic <a href="https://attpc.github.io/Spyral">Spyral</a>, the AT-TPC group-supported analysis framework. <code>SpyralWriter</code> also includes the useful feature of splitting the output into multiple files based on file size, which can help take advantage of parallel analysis pipelines. Note that attpc_engine does not claim to provide values in the integral or amplitude fields of a Spyral point cloud that will match real data; <code>SpyralWriter</code> use the <a href="https://www.sciencedirect.com/science/article/pii/S0168900216309408?casa_token=DAWbhPvX49MAAAAA:Zen7nFs-pgG9wu__g0rrzus01B1pa7ZYspbz_KOnn-dZyhXNglEqtgywFKwYrvKKsIwEY10n49XV">theoretical response function</a> of the GET electronics to make an attempt to approximate the amplitude and integral, but this should be regarded as dubious at best.</p>
+<p>Given that attpc_engine outputs point clouds, the results should not be run through the PointcloudPhase, rather starting directly with the ClusterPhase. Note that because Spyral expects trace data, one will need to "fake" the trace datapath. The simplest way to do this is to point the trace path to the Pointcloud directory of the workspace. Just be sure not to run the PointcloudPhase in this case!</p>
 
 
 

@@ -1939,7 +1939,7 @@ be applied to the beam.</p>
 </span><span id="__span-0-212"><a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">        bool</span>
 </span><span id="__span-0-213"><a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">            True if allowed, False otherwise</span>
 </span><span id="__span-0-214"><a id="__codelineno-0-214" name="__codelineno-0-214"></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="__span-0-215"><a id="__codelineno-0-215" name="__codelineno-0-215"></a>        <span class="n">Q</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-0-215"><a id="__codelineno-0-215" name="__codelineno-0-215"></a>        <span class="n">q_value</span> <span class="o">=</span> <span class="p">(</span>
 </span><span id="__span-0-216"><a id="__codelineno-0-216" name="__codelineno-0-216"></a>            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reaction</span><span class="o">.</span><span class="n">projectile</span><span class="o">.</span><span class="n">mass</span> <span class="o">+</span> <span class="n">projectile_energy</span><span class="p">)</span>
 </span><span id="__span-0-217"><a id="__codelineno-0-217" name="__codelineno-0-217"></a>            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">mass</span>
 </span><span id="__span-0-218"><a id="__codelineno-0-218" name="__codelineno-0-218"></a>            <span class="o">-</span> <span class="p">(</span>
@@ -1949,10 +1949,10 @@ be applied to the beam.</p>
 </span><span id="__span-0-222"><a id="__codelineno-0-222" name="__codelineno-0-222"></a>            <span class="p">)</span>
 </span><span id="__span-0-223"><a id="__codelineno-0-223" name="__codelineno-0-223"></a>        <span class="p">)</span>
 </span><span id="__span-0-224"><a id="__codelineno-0-224" name="__codelineno-0-224"></a>        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">decay</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decays</span><span class="p">):</span>
-</span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a>            <span class="n">Q</span> <span class="o">+=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span>
+</span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a>            <span class="n">q_value</span> <span class="o">+=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span>
 </span><span id="__span-0-226"><a id="__codelineno-0-226" name="__codelineno-0-226"></a>                <span class="n">decay</span><span class="o">.</span><span class="n">residual_1</span><span class="o">.</span><span class="n">mass</span> <span class="o">+</span> <span class="n">decay</span><span class="o">.</span><span class="n">residual_2</span><span class="o">.</span><span class="n">mass</span> <span class="o">+</span> <span class="n">excitations</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
 </span><span id="__span-0-227"><a id="__codelineno-0-227" name="__codelineno-0-227"></a>            <span class="p">)</span>
-</span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a>        <span class="k">return</span> <span class="n">Q</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
+</span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a>        <span class="k">return</span> <span class="n">q_value</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
 </span><span id="__span-0-229"><a id="__codelineno-0-229" name="__codelineno-0-229"></a>
 </span><span id="__span-0-230"><a id="__codelineno-0-230" name="__codelineno-0-230"></a>    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sample</span><span class="p">:</span>
 </span><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Sample the pipeline parameters</span>
@@ -2359,7 +2359,7 @@ be applied to the beam.</p>
 </span><span id="__span-0-212"><a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">    bool</span>
 </span><span id="__span-0-213"><a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">        True if allowed, False otherwise</span>
 </span><span id="__span-0-214"><a id="__codelineno-0-214" name="__codelineno-0-214"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-215"><a id="__codelineno-0-215" name="__codelineno-0-215"></a>    <span class="n">Q</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-0-215"><a id="__codelineno-0-215" name="__codelineno-0-215"></a>    <span class="n">q_value</span> <span class="o">=</span> <span class="p">(</span>
 </span><span id="__span-0-216"><a id="__codelineno-0-216" name="__codelineno-0-216"></a>        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reaction</span><span class="o">.</span><span class="n">projectile</span><span class="o">.</span><span class="n">mass</span> <span class="o">+</span> <span class="n">projectile_energy</span><span class="p">)</span>
 </span><span id="__span-0-217"><a id="__codelineno-0-217" name="__codelineno-0-217"></a>        <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">mass</span>
 </span><span id="__span-0-218"><a id="__codelineno-0-218" name="__codelineno-0-218"></a>        <span class="o">-</span> <span class="p">(</span>
@@ -2369,10 +2369,10 @@ be applied to the beam.</p>
 </span><span id="__span-0-222"><a id="__codelineno-0-222" name="__codelineno-0-222"></a>        <span class="p">)</span>
 </span><span id="__span-0-223"><a id="__codelineno-0-223" name="__codelineno-0-223"></a>    <span class="p">)</span>
 </span><span id="__span-0-224"><a id="__codelineno-0-224" name="__codelineno-0-224"></a>    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">decay</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decays</span><span class="p">):</span>
-</span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a>        <span class="n">Q</span> <span class="o">+=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span>
+</span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a>        <span class="n">q_value</span> <span class="o">+=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span>
 </span><span id="__span-0-226"><a id="__codelineno-0-226" name="__codelineno-0-226"></a>            <span class="n">decay</span><span class="o">.</span><span class="n">residual_1</span><span class="o">.</span><span class="n">mass</span> <span class="o">+</span> <span class="n">decay</span><span class="o">.</span><span class="n">residual_2</span><span class="o">.</span><span class="n">mass</span> <span class="o">+</span> <span class="n">excitations</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
 </span><span id="__span-0-227"><a id="__codelineno-0-227" name="__codelineno-0-227"></a>        <span class="p">)</span>
-</span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a>    <span class="k">return</span> <span class="n">Q</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
+</span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a>    <span class="k">return</span> <span class="n">q_value</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
