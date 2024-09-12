@@ -29,7 +29,7 @@ electronics = ElectronicsParams(
     shaping_time=1000,
     micromegas_edge=10,
     windows_edge=560,
-    adc_threshold=40.0,
+    adc_threshold=40,
 )
 
 pads = PadParams()

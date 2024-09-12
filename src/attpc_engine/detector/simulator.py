@@ -304,6 +304,7 @@ class SimParticle:
             track,
             electrons,
         )
+
         # Wiggle point TBs over interval [0.0, 1.0). This simulates effect of converting
         # the (in principle) int TBs to floats.
         points[:, 1] += rng.uniform(low=0.0, high=1.0, size=len(points))
