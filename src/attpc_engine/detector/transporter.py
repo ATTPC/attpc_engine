@@ -1,4 +1,4 @@
-from .utils import pair, unpair
+from .pairing import pair, unpair
 from .beam_pads import BEAM_PADS_ARRAY
 
 import numpy as np
