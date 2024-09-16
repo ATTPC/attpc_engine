@@ -149,10 +149,9 @@ def point_transport(
         will be filled by this function
     """
     # Find pad number of hit pad, if it exists
-    point = np.full((1, 3), -1.0)
     index_x, index_y = position_to_index(grid_edges, center)
     if index_x == -1 or index_y == -1:
-        return point
+        return
     pad = pad_grid[index_x, index_y]
 
     # Ensure electron hits pad plane and hits a non-beam pad
