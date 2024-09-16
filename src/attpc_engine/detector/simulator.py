@@ -101,11 +101,7 @@ class SimEvent:
         points: np.ndarray = np.empty((0, 3))
         for nuc in self.nuclei:
             new_points = nuc.generate_point_cloud(config, rng)
-            if len(new_points) != 0:
-                points = np.vstack((points, new_points))
-
-        # Remove dead points (no pads hit)
-        points = points[points[:, 0] != -1.0]
+            points = np.vstack((points, new_points))
 
         # Remove points outside legal bounds in time. TODO check if this is needed
         points = points[points[:, 1] < NUM_TB]
