@@ -1,10 +1,9 @@
-from .pairing import pair, unpair
+from .pairing import pair
 from .beam_pads import BEAM_PADS_ARRAY
 
 import numpy as np
 from numba import njit
 from numba.typed import Dict
-from numba.core import types
 
 STEPS = 10
 
@@ -144,7 +143,7 @@ def point_transport(
         (x,y) position of point being transported.
     electrons: int
         Number of electrons made at point being transported.
-    points: dict[int, int]
+    points: numba.typed.Dict[int, int]
         A dictionary mapping a unique pad,tb key to the number of electrons, which
         will be filled by this function
     """
@@ -200,7 +199,7 @@ def transverse_transport(
     sigma_t: float
         Standard deviation of transverse diffusion at point
         being transported.
-    points: dict[int, int]
+    points: numba.typed.Dict[int, int]
         A dictionary mapping a unique pad,tb key to the number of electrons, which
         will be filled by this function
     """
@@ -269,7 +268,7 @@ def find_pads_hit(
     sigma_t: float
         Standard deviation of transverse diffusion at point
         being transported.
-    points: dict[int, int]
+    points: numba.typed.Dict[int, int]
         A dictionary mapping a unique pad,tb key to the number of electrons, which
         will be filled by this function
     """
@@ -299,6 +298,7 @@ def transport_track(
     dv: float,
     track: np.ndarray,
     electrons: np.ndarray,
+    points: Dict,
 ) -> np.ndarray:
     """
     High-level function that transports each point in a nucleus' trajectory
@@ -324,15 +324,16 @@ def transport_track(
         the Nth time step.
     electrons: np.ndarray
         1xN array of electrons created each time step (point) of the trajectory.
+    points: numba.typed.Dict
+        A dictionary mapping a unique pad,tb key to the number of electrons.
 
     Returns
     -------
-    numpy.ndarray
-        An Nx3 array representing the simplified point cloud
+    points: numba.typed.Dict[int, int]
+        A dictionary mapping a unique pad,tb key to the number of electrons.
     """
 
     # Each point is a TB/pad combo in the TPC
-    points = Dict.empty(key_type=types.int64, value_type=types.int64)
     for idx, row in enumerate(track):
         time = row[2]
         center = (row[0], row[1])
@@ -342,12 +343,4 @@ def transport_track(
             pad_grid, grid_edges, time, center, point_electrons, sigma_t, points
         )
 
-    # Convert to numpy array of [pad, tb, e], now combined over pad/tb combos
-    point_array = np.empty((len(points), 3), dtype=float)
-    for idx, point in enumerate(points.items()):
-        tb, pad = unpair(point[0])
-        point_array[idx, 0] = pad
-        point_array[idx, 1] = tb
-        point_array[idx, 2] = point[1]
-
-    return point_array
+    return points

@@ -90,9 +90,9 @@ def stop_condition(
         time step, unused
     state: ndarray
         the state of the particle (x,y,z,vx,vy,vz)
-    Bfield: float
+    bfield: float
         the magnitude of the magnetic field, unused
-    Efield: float
+    efield: float
         the magnitude of the electric field, unused
     target: Target
         the material through which the particle travels, unused
@@ -134,9 +134,9 @@ def forward_z_bound_condition(
         time step, unused
     state: ndarray
         the state of the particle (x,y,z,vx,vy,vz)
-    Bfield: float
+    bfield: float
         the magnitude of the magnetic field, unused
-    Efield: float
+    efield: float
         the magnitude of the electric field, unused
     target: Target
         the material through which the particle travels, unused
@@ -174,9 +174,9 @@ def backward_z_bound_condition(
         time step, unused
     state: ndarray
         the state of the particle (x,y,z,vx,vy,vz)
-    Bfield: float
+    bfield: float
         the magnitude of the magnetic field, unused
-    Efield: float
+    efield: float
         the magnitude of the electric field, unused
     target: Target
         the material through which the particle travels, unused
@@ -214,9 +214,9 @@ def rho_bound_condition(
         time step, unused
     state: ndarray
         the state of the particle (x,y,z,vx,vy,vz)
-    Bfield: float
+    bfield: float
         the magnitude of the magnetic field, unused
-    Efield: float
+    efield: float
         the magnitude of the electric field, unused
     target: Target
         the material through which the particle travels, unused
