@@ -1,8 +1,10 @@
-import math
-import numpy as np
-
-from numba import njit
+from .pairing import pair, unpair
 from .beam_pads import BEAM_PADS_ARRAY
+
+import numpy as np
+from numba import njit
+from numba.typed import Dict
+from numba.core import types
 
 STEPS = 10
 
@@ -36,7 +38,7 @@ def bivariate_normal_pdf(
         ((point[0] - mu[0]) ** 2) + ((point[1] - mu[1]) ** 2)
     )
 
-    return c1 * math.exp(c2)
+    return c1 * np.exp(c2)
 
 
 @njit
@@ -103,15 +105,15 @@ def position_to_index(
     bin_size: float = grid_edges[2]
 
     # Pad map is exclusive on highest edge
-    if math.floor(x) >= high_edge or math.floor(y) >= high_edge:
+    if np.floor(x) >= high_edge or np.floor(y) >= high_edge:
         return (-1, -1)
 
     # Pad map is inclusive on lowest edge
-    if math.floor(x) < low_edge or math.floor(y) < low_edge:
+    if np.floor(x) < low_edge or np.floor(y) < low_edge:
         return (-1, -1)
 
-    x_idx = int((math.floor(x) - low_edge) / bin_size)
-    y_idx = int((math.floor(y) - low_edge) / bin_size)
+    x_idx = int((np.floor(x) - low_edge) / bin_size)
+    y_idx = int((np.floor(y) - low_edge) / bin_size)
 
     return (x_idx, y_idx)
 
@@ -123,7 +125,8 @@ def point_transport(
     time: float,
     center: tuple[float, float],
     electrons: int,
-) -> np.ndarray:
+    points: dict[int, int],
+):
     """
     Transports all electrons created at a point in a simulated nucleus' track
     straight to the pad plane.
@@ -141,26 +144,23 @@ def point_transport(
         (x,y) position of point being transported.
     electrons: int
         Number of electrons made at point being transported.
-
-    Returns
-    -------
-    numpy.ndarray
-        An Nx3 array representing the simplified point cloud
+    points: dict[int, int]
+        A dictionary mapping a unique pad,tb key to the number of electrons, which
+        will be filled by this function
     """
     # Find pad number of hit pad, if it exists
-    point = np.full((1, 3), -1.0)
     index_x, index_y = position_to_index(grid_edges, center)
     if index_x == -1 or index_y == -1:
-        return point
+        return
     pad = pad_grid[index_x, index_y]
 
     # Ensure electron hits pad plane and hits a non-beam pad
     if pad != -1 and pad not in BEAM_PADS_ARRAY:
-        point[0, 0] = pad
-        point[0, 1] = int(time)  # Convert from absolute time bucket to discretized
-        point[0, 2] = electrons
-
-    return point
+        tb = int(time)  # Convert from absolute time bucket to discretized
+        id = pair(tb, pad)
+        points[id] = (
+            points.get(id, 0) + electrons
+        )  # The get returns 0 if the key doesn't exist
 
 
 @njit
@@ -171,7 +171,8 @@ def transverse_transport(
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-) -> np.ndarray:
+    points: dict[int, int],
+):
     """
     Transports all electrons created at a point in a simulated nucleus'
     track to the pad plane with transverse diffusion applied. This is done by
@@ -199,11 +200,9 @@ def transverse_transport(
     sigma_t: float
         Standard deviation of transverse diffusion at point
         being transported.
-
-    Returns
-    -------
-    numpy.ndarray
-        An Nx3 array representing the simplified point cloud
+    points: dict[int, int]
+        A dictionary mapping a unique pad,tb key to the number of electrons, which
+        will be filled by this function
     """
     mesh_centerx: float = center[0]
     mesh_centery: float = center[1]
@@ -217,23 +216,17 @@ def transverse_transport(
     step_sizey: float = 2 * 3 * sigma_t / (STEPS - 1)
     mesh = meshgrid(xsteps, ysteps)
 
-    # Point per mesh val
-    points = np.full((len(mesh), 3), -1.0)
-
-    # TODO needs testing
-    if len(points) == 0:
-        return points
-
-    for idx, pixel in enumerate(mesh):
+    for pixel in mesh:
         # Find pad number of hit pad, if it exists
         index_x, index_y = position_to_index(grid_edges, pixel)
         if index_x == -1 or index_y == -1:
             continue
-        pad: int = pad_grid[index_x, index_y]
+        pad: int = int(pad_grid[index_x, index_y])
 
         # Ensure electron hits pad plane and hits a non-beam pad
         if pad != -1 and pad not in BEAM_PADS_ARRAY:
-            points[idx, 0] = pad
+            tb = int(time)
+            id = pair(tb, pad)
             pixel_electrons = int(
                 (
                     bivariate_normal_pdf(pixel, center, sigma_t)
@@ -241,28 +234,9 @@ def transverse_transport(
                     * electrons
                 )
             )
-            points[idx, 1] = int(
-                time
-            )  # Convert from absolute time bucket to discretized
-            points[idx, 2] = pixel_electrons
-
-    points = points[points[:, 0] != -1.0]
-
-    if len(points) == 0:
-        return points
-
-    # Combine points that lie within the same pad for this time
-    unique_pads = np.unique(points[:, 0])
-    downsample = np.full((len(unique_pads), 3), -1.0)
-    for idx, pad in enumerate(unique_pads):
-        subpoints = points[points[:, 0] == pad]
-        downsample[idx, 0] = pad
-        downsample[idx, 1] = int(
-            time
-        )  # Convert from absolute time bucket to discretized
-        downsample[idx, 2] = subpoints[:, 2].sum()
-
-    return downsample
+            points[id] = (
+                points.get(id, 0) + pixel_electrons
+            )  # The get returns 0 if the key doesn't exist
 
 
 @njit
@@ -273,7 +247,8 @@ def find_pads_hit(
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-) -> np.ndarray:
+    points: dict[int, int],
+):
     """
     Finds the pads hit by transporting the electrons created at a point in
     the nucleus' trajectory to the pad plane and applies transverse diffusion, if selected.
@@ -294,34 +269,25 @@ def find_pads_hit(
     sigma_t: float
         Standard deviation of transverse diffusion at point
         being transported.
-
-    Returns
-    -------
-    numpy.ndarray
-        An Nx3 array representing the simplified point cloud
+    points: dict[int, int]
+        A dictionary mapping a unique pad,tb key to the number of electrons, which
+        will be filled by this function
     """
     # Point transport
     if sigma_t == 0.0:
-        points: np.ndarray = point_transport(
-            pad_grid,
-            grid_edges,
-            time,
-            center,
-            electrons,
-        )
+        point_transport(pad_grid, grid_edges, time, center, electrons, points)
 
     # Transverse diffusion transport
     else:
-        points: np.ndarray = transverse_transport(
+        transverse_transport(
             pad_grid,
             grid_edges,
             time,
             center,
             electrons,
             sigma_t,
+            points,
         )
-
-    return points
 
 
 @njit
@@ -333,7 +299,7 @@ def transport_track(
     dv: float,
     track: np.ndarray,
     electrons: np.ndarray,
-):
+) -> np.ndarray:
     """
     High-level function that transports each point in a nucleus' trajectory
     to the pad plane, applying transverse diffusion if specified.
@@ -365,21 +331,23 @@ def transport_track(
         An Nx3 array representing the simplified point cloud
     """
 
-    points = np.empty((0, 3))
+    # Each point is a TB/pad combo in the TPC
+    points = Dict.empty(key_type=types.int64, value_type=types.int64)
     for idx, row in enumerate(track):
         time = row[2]
         center = (row[0], row[1])
         point_electrons = electrons[idx]
         sigma_t = np.sqrt(2.0 * diffusion * dv * time / efield)
-        new_points = find_pads_hit(
-            pad_grid,
-            grid_edges,
-            time,
-            center,
-            point_electrons,
-            sigma_t,
+        find_pads_hit(
+            pad_grid, grid_edges, time, center, point_electrons, sigma_t, points
         )
-        if len(new_points) > 0:
-            points = np.vstack((points, new_points))
 
-    return points
+    # Convert to numpy array of [pad, tb, e], now combined over pad/tb combos
+    point_array = np.empty((len(points), 3), dtype=float)
+    for idx, point in enumerate(points.items()):
+        tb, pad = unpair(point[0])
+        point_array[idx, 0] = pad
+        point_array[idx, 1] = tb
+        point_array[idx, 2] = point[1]
+
+    return point_array

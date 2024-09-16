@@ -123,7 +123,10 @@ class SpyralWriter:
     config: Config
         The simulation configuration.
     max_file_size: int
-        The maximum file size of a point cloud file in bytes. Defualt value is 10 Gb.
+        The maximum file size of a point cloud file in bytes. Defualt value is 1 Gb.
+    first_run_number: int
+        The starting run number. You can use this to change the starting point for run files
+        (i.e. run_0000 or run_0008) to avoid overwritting previous results. Default is 0
 
     Attributes
     ----------
@@ -155,12 +158,16 @@ class SpyralWriter:
     """
 
     def __init__(
-        self, directory_path: Path, config: Config, max_file_size: int = int(5e9)
+        self,
+        directory_path: Path,
+        config: Config,
+        max_file_size: int = 1_000_000_000,
+        first_run_number=0,
     ):
         self.directory_path: Path = directory_path
         self.response: np.ndarray = get_response(config).copy()
         self.max_file_size: int = max_file_size
-        self.run_number = 0
+        self.run_number = first_run_number
         self.event_number_low = 0  # Kinematics generator always starts with event 0
         self.event_number_high = 0  # By default set to 0
         self.create_file()
