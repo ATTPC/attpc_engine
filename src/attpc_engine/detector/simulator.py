@@ -115,7 +115,9 @@ class SimEvent:
         point_array[:, 1] += rng.uniform(low=0.0, high=1.0, size=len(point_array))
 
         # Remove points outside legal bounds in time. TODO check if this is needed
-        point_array = point_array[point_array[:, 1] < NUM_TB]
+        point_array = point_array[
+            np.logical_and(0 <= point_array[:, 1], point_array[:, 1] < NUM_TB)
+        ]
 
         return point_array
 
