@@ -9,7 +9,6 @@ import argparse
 
 
 def convert_kinematics_hdf5_to_polars(input_path: Path, output_path: Path) -> None:
-
     if not input_path.exists():
         raise Exception(f"Input path {input_path} does not exist!")
 

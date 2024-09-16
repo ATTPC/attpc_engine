@@ -16,7 +16,10 @@ In general attpc_engine is flexible, and can generate data for many different ty
 See [Converting to Dataframes](./user_guide/kinematics/index.md#converting-to-dataframes)
 
 ## How to make attpc_engine output data into a different format
-See [Format the point cloud](./user_guide/detector/index.md#format-the-point-cloud)
+See [Writing the Point cloud to disk](./user_guide/detector/index.md)
+
+## How do I use the results of attpc_engine with Spyral?
+See [Use with Spyral](./user_guide/detector/index.md)
 
 ## How do I update my version of attpc_engine
 

@@ -16,6 +16,7 @@ import h5py as h5
 from tqdm import trange
 from scipy.integrate import solve_ivp
 from numpy.random import default_rng, Generator
+from pathlib import Path
 
 # Time steps to solve ODE at. Each step is 1e-10 s
 TIME_STEPS = np.linspace(0, 10e-7, 10001)
@@ -100,11 +101,7 @@ class SimEvent:
         points: np.ndarray = np.empty((0, 3))
         for nuc in self.nuclei:
             new_points = nuc.generate_point_cloud(config, rng)
-            if len(new_points) != 0:
-                points = np.vstack((points, new_points))
-
-        # Remove dead points (no pads hit)
-        points = points[points[:, 0] != -1.0]
+            points = np.vstack((points, new_points))
 
         # Remove points outside legal bounds in time. TODO check if this is needed
         points = points[points[:, 1] < NUM_TB]
@@ -303,6 +300,7 @@ class SimParticle:
             track,
             electrons,
         )
+
         # Wiggle point TBs over interval [0.0, 1.0). This simulates effect of converting
         # the (in principle) int TBs to floats.
         points[:, 1] += rng.uniform(low=0.0, high=1.0, size=len(points))
@@ -311,7 +309,7 @@ class SimParticle:
 
 def run_simulation(
     config: Config,
-    input_path: str,
+    input_path: Path,
     writer: SimulationWriter,
 ):
     """Run the simulation
@@ -323,7 +321,7 @@ def run_simulation(
      ----------
     config: Config
         The simulation configuration
-    input_path: str
+    input_path: pathlib.Path
         Path to HDF5 file containing kinematics
     writer: SimulationWriter
         An object which implements the SimulationWriter Protocol
