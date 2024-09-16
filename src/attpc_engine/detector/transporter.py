@@ -152,7 +152,7 @@ def point_transport(
     index_x, index_y = position_to_index(grid_edges, center)
     if index_x == -1 or index_y == -1:
         return
-    pad = pad_grid[index_x, index_y]
+    pad = int(pad_grid[index_x, index_y])
 
     # Ensure electron hits pad plane and hits a non-beam pad
     if pad != -1 and pad not in BEAM_PADS_ARRAY:
