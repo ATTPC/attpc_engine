@@ -124,7 +124,7 @@ def point_transport(
     time: float,
     center: tuple[float, float],
     electrons: int,
-    points: dict[int, int],
+    points: Dict[int, int],
 ):
     """
     Transports all electrons created at a point in a simulated nucleus' track
@@ -170,7 +170,7 @@ def transverse_transport(
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-    points: dict[int, int],
+    points: Dict[int, int],
 ):
     """
     Transports all electrons created at a point in a simulated nucleus'
@@ -246,7 +246,7 @@ def find_pads_hit(
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-    points: dict[int, int],
+    points: Dict[int, int],
 ):
     """
     Finds the pads hit by transporting the electrons created at a point in
@@ -298,8 +298,8 @@ def transport_track(
     dv: float,
     track: np.ndarray,
     electrons: np.ndarray,
-    points: numba.typed.Dict[int, int],
-):  # type: ignore
+    points: Dict[int, int],
+):
     """
     High-level function that transports each point in a nucleus' trajectory
     to the pad plane, applying transverse diffusion if specified.
@@ -324,7 +324,7 @@ def transport_track(
         the Nth time step.
     electrons: np.ndarray
         1xN array of electrons created each time step (point) of the trajectory.
-    points: numba.typed.Dict
+    points: numba.typed.Dict[int, int]
         A dictionary mapping a unique pad,tb key to the number of electrons.
     """
 
