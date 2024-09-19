@@ -298,8 +298,8 @@ def transport_track(
     dv: float,
     track: np.ndarray,
     electrons: np.ndarray,
-    points: Dict,
-) -> np.ndarray:
+    points: numba.typed.Dict[int, int],
+):
     """
     High-level function that transports each point in a nucleus' trajectory
     to the pad plane, applying transverse diffusion if specified.
@@ -326,11 +326,6 @@ def transport_track(
         1xN array of electrons created each time step (point) of the trajectory.
     points: numba.typed.Dict
         A dictionary mapping a unique pad,tb key to the number of electrons.
-
-    Returns
-    -------
-    points: numba.typed.Dict[int, int]
-        A dictionary mapping a unique pad,tb key to the number of electrons.
     """
 
     # Each point is a TB/pad combo in the TPC
@@ -342,5 +337,3 @@ def transport_track(
         find_pads_hit(
             pad_grid, grid_edges, time, center, point_electrons, sigma_t, points
         )
-
-    return points

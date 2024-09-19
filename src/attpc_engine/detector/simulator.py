@@ -123,7 +123,7 @@ class SimEvent:
 
 
 @njit
-def dict_to_points(points: Dict):
+def dict_to_points(points: numba.typed.Dict[int, int]) -> np.ndarray:
     """
     Converts dictionary of N pad,tb keys with corresponding number of electrons
     to Nx3 array where each row is [pad, tb, e], now combined over pad/tb combos.
@@ -294,8 +294,8 @@ class SimParticle:
         return electrons
 
     def generate_point_cloud(
-        self, config: Config, rng: Generator, points
-    ) -> np.ndarray:
+        self, config: Config, rng: Generator, points: numba.typed.Dict[int, int]
+    ):
         """Create the point cloud
 
         Finds the pads hit by the electrons transported from each point
@@ -307,11 +307,6 @@ class SimParticle:
             The simulation configuration
         rng: numpy.random.Generator
             numpy random number generator
-        points: numba.typed.Dict[int, int]
-            A dictionary mapping a unique pad,tb key to the number of electrons.
-
-        Returns
-        -------
         points: numba.typed.Dict[int, int]
             A dictionary mapping a unique pad,tb key to the number of electrons.
         """
@@ -346,8 +341,6 @@ class SimParticle:
             electrons,
             points,
         )
-
-        return points
 
 
 def run_simulation(
