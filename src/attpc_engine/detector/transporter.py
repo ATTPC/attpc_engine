@@ -299,7 +299,7 @@ def transport_track(
     track: np.ndarray,
     electrons: np.ndarray,
     points: numba.typed.Dict[int, int],
-):
+):  # type: ignore
     """
     High-level function that transports each point in a nucleus' trajectory
     to the pad plane, applying transverse diffusion if specified.
