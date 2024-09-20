@@ -10,6 +10,7 @@ from .transporter import transport_track
 from .writer import SimulationWriter
 from .constants import NUM_TB
 from .. import nuclear_map
+from .pairing import unpair
 
 import numpy as np
 import h5py as h5
@@ -17,6 +18,10 @@ from tqdm import trange
 from scipy.integrate import solve_ivp
 from numpy.random import default_rng, Generator
 from pathlib import Path
+from numba.typed import Dict
+from numba.core import types
+from numba import njit
+
 
 # Time steps to solve ODE at. Each step is 1e-10 s
 TIME_STEPS = np.linspace(0, 10e-7, 10001)
@@ -93,20 +98,54 @@ class SimEvent:
 
         Returns
         -------
-        numpy.ndarray
+        point_array: numpy.ndarray
             An Nx3 array representing the point cloud. Each row is a point, with elements
             [pad id, time bucket, electrons]
         """
         # Sum points from all particles
-        points: np.ndarray = np.empty((0, 3))
+        points = Dict.empty(key_type=types.int64, value_type=types.int64)
         for nuc in self.nuclei:
-            new_points = nuc.generate_point_cloud(config, rng)
-            points = np.vstack((points, new_points))
+            nuc.generate_point_cloud(config, rng, points)
+
+        # Convert to numpy array of [pad, tb, e], now combined over pad/tb combos
+        point_array = dict_to_points(points)
+
+        # Wiggle point TBs over interval [0.0, 1.0). This simulates effect of converting
+        # the (in principle) int TBs to floats.
+        point_array[:, 1] += rng.uniform(low=0.0, high=1.0, size=len(point_array))
 
         # Remove points outside legal bounds in time. TODO check if this is needed
-        points = points[points[:, 1] < NUM_TB]
+        point_array = point_array[
+            np.logical_and(0 <= point_array[:, 1], point_array[:, 1] < NUM_TB)
+        ]
 
-        return points
+        return point_array
+
+
+@njit
+def dict_to_points(points: Dict[int, int]) -> np.ndarray:
+    """
+    Converts dictionary of N pad,tb keys with corresponding number of electrons
+    to Nx3 array where each row is [pad, tb, e], now combined over pad/tb combos.
+
+    Parameters
+    ----------
+    points: numba.typed.Dict[int, int]
+        A dictionary mapping a unique pad,tb key to the number of electrons.
+
+    Returns
+    -------
+    point_array: numpy.ndarray
+        Array of points.
+    """
+    point_array = np.empty((len(points), 3), dtype=float)
+    for idx, point in enumerate(points.items()):
+        tb, pad = unpair(point[0])
+        point_array[idx, 0] = pad
+        point_array[idx, 1] = tb
+        point_array[idx, 2] = point[1]
+
+    return point_array
 
 
 class SimParticle:
@@ -254,7 +293,9 @@ class SimParticle:
         )
         return electrons
 
-    def generate_point_cloud(self, config: Config, rng: Generator) -> np.ndarray:
+    def generate_point_cloud(
+        self, config: Config, rng: Generator, points: Dict[int, int]
+    ):
         """Create the point cloud
 
         Finds the pads hit by the electrons transported from each point
@@ -264,11 +305,10 @@ class SimParticle:
         ----------
         config: Config
             The simulation configuration
-
-        Returns
-        -------
-        numpy.ndarray
-            Array of points (point cloud)
+        rng: numpy.random.Generator
+            numpy random number generator
+        points: numba.typed.Dict[int, int]
+            A dictionary mapping a unique pad,tb key to the number of electrons.
         """
         # Generate nucleus' track and calculate the electrons made at each point
         track = self.generate_track(config)
@@ -299,12 +339,8 @@ class SimParticle:
             config.drift_velocity,
             track,
             electrons,
+            points,
         )
-
-        # Wiggle point TBs over interval [0.0, 1.0). This simulates effect of converting
-        # the (in principle) int TBs to floats.
-        points[:, 1] += rng.uniform(low=0.0, high=1.0, size=len(points))
-        return points
 
 
 def run_simulation(
