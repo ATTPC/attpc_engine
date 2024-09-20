@@ -19,11 +19,13 @@ nav:
       - About detector: api/detector/index.md
       - beam_pads: api/detector/beam_pads.md
       - constants: api/detector/constants.md
+      - pairing: api/detector/pairing.md
       - parameters: api/detector/parameters.md
       - response: api/detector/response.md
       - simulator: api/detector/simulator.md
       - solver: api/detector/solver.md
       - transporter: api/detector/transporter.md
+      - typed_dict: api/detector/typed_dict.md
       - writer: api/detector/writer.md
     - kinematics:
       - About kinematics: api/kinematics/index.md

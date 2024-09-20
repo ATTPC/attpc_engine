@@ -1,9 +1,9 @@
 from .pairing import pair
 from .beam_pads import BEAM_PADS_ARRAY
+from .typed_dict import NumbaTypedDict
 
 import numpy as np
 from numba import njit
-from numba.typed import Dict
 
 STEPS = 10
 
@@ -124,7 +124,7 @@ def point_transport(
     time: float,
     center: tuple[float, float],
     electrons: int,
-    points: Dict[int, int],
+    points: NumbaTypedDict[int, int],
 ):
     """
     Transports all electrons created at a point in a simulated nucleus' track
@@ -170,7 +170,7 @@ def transverse_transport(
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-    points: Dict[int, int],
+    points: NumbaTypedDict[int, int],
 ):
     """
     Transports all electrons created at a point in a simulated nucleus'
@@ -246,7 +246,7 @@ def find_pads_hit(
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-    points: Dict[int, int],
+    points: NumbaTypedDict[int, int],
 ):
     """
     Finds the pads hit by transporting the electrons created at a point in
@@ -298,7 +298,7 @@ def transport_track(
     dv: float,
     track: np.ndarray,
     electrons: np.ndarray,
-    points: Dict[int, int],
+    points: NumbaTypedDict[int, int],
 ):
     """
     High-level function that transports each point in a nucleus' trajectory

@@ -11,6 +11,7 @@ from .writer import SimulationWriter
 from .constants import NUM_TB
 from .. import nuclear_map
 from .pairing import unpair
+from .typed_dict import NumbaTypedDict
 
 import numpy as np
 import h5py as h5
@@ -123,7 +124,7 @@ class SimEvent:
 
 
 @njit
-def dict_to_points(points: Dict[int, int]) -> np.ndarray:
+def dict_to_points(points: NumbaTypedDict[int, int]) -> np.ndarray:
     """
     Converts dictionary of N pad,tb keys with corresponding number of electrons
     to Nx3 array where each row is [pad, tb, e], now combined over pad/tb combos.
@@ -294,7 +295,7 @@ class SimParticle:
         return electrons
 
     def generate_point_cloud(
-        self, config: Config, rng: Generator, points: Dict[int, int]
+        self, config: Config, rng: Generator, points: NumbaTypedDict
     ):
         """Create the point cloud
 
@@ -331,7 +332,7 @@ class SimParticle:
         if config.pad_grid_edges is None or config.pad_grid is None:
             raise ValueError("Pad grid is not loaded at SimParticle.generate_hits!")
 
-        points = transport_track(
+        transport_track(
             config.pad_grid,
             config.pad_grid_edges,
             config.det_params.diffusion,
