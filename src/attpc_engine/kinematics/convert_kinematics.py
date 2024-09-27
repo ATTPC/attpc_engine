@@ -42,7 +42,7 @@ def convert_kinematics_hdf5_to_polars(input_path: Path, output_path: Path) -> No
 
     for event in trange(n_events):
         chunk = event // chunk_size  # integer floor division
-        dataset: h5.Dataset = input_data_group[f"chunk_{chunk}"][f"event_{event_number}"]  # type: ignore
+        dataset: h5.Dataset = input_data_group[f"chunk_{chunk}"][f"event_{event}"]  # type: ignore
         vx = dataset.attrs["vertex_x"]
         vy = dataset.attrs["vertex_y"]
         vz = dataset.attrs["vertex_z"]

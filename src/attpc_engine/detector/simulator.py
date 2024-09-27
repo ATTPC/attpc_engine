@@ -395,7 +395,9 @@ def run_simulation(
 
     for event_number in trange(n_events, miniters=miniters):  # type: ignore
         chunk = event_number // chunk_size  # integer floor division
-        dataset: h5.Dataset = input_data_group[f"chunk_{chunk}"][f"event_{event_number}"]  # type: ignore
+        dataset: h5.Dataset = input_data_group[f"chunk_{chunk}"][  # type: ignore
+            f"event_{event_number}"
+        ]  # type: ignore
         sim = SimEvent(
             dataset[:].copy(),  # type: ignore
             np.array(
