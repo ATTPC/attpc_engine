@@ -10,6 +10,8 @@ from pathlib import Path
 from numpy.random import default_rng
 from tqdm import trange
 
+CHUNK_SIZE: int = 1_000_000
+
 
 @dataclass
 class KinematicsTargetMaterial:
@@ -467,12 +469,27 @@ def run_kinematics_pipeline(
             ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
         """
     )
-    for event in trange(0, n_events):
+    chunk = 0
+    chunk_event = 0
+    data_group.attrs["chunk_size"] = CHUNK_SIZE
+    chunk_group = data_group.create_group("chunk_0")
+    chunk_group.attrs["min_event"] = 0
+    miniters = int(0.01 * n_events)
+    for event in trange(0, n_events, miniters=miniters):
+        if chunk_event == CHUNK_SIZE:
+            chunk_group.attrs["max_event"] = event - 1
+            chunk_event = 0
+            chunk += 1
+            chunk_group = data_group.create_group(f"chunk_{chunk}")
+            chunk_group.attrs["min_event"] = event
         vertex, result = pipeline.run()
-        data = data_group.create_dataset(f"event_{event}", data=result)  # type: ignore
+        data = chunk_group.create_dataset(f"event_{event}", data=result)  # type: ignore
         data.attrs["vertex_x"] = vertex[0]
         data.attrs["vertex_y"] = vertex[1]
         data.attrs["vertex_z"] = vertex[2]
+        chunk_event += 1
+    chunk_group.attrs["max_event"] = n_events - 1
+    data_group.attrs["n_chunks"] = chunk + 1
     output_file.close()
     print("Done.")
     print("----------------------------------------")
