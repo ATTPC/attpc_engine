@@ -18,6 +18,7 @@ def convert_kinematics_hdf5_to_polars(input_path: Path, output_path: Path) -> No
     proton_numbers: np.ndarray = input_data_group.attrs["proton_numbers"]  # type: ignore
     mass_numbers: np.ndarray = input_data_group.attrs["mass_numbers"]  # type: ignore
     n_events: int = input_data_group.attrs["n_events"]  # type: ignore
+    chunk_size: int = input_data_group.attrs["chunk_size"]  # type: ignore
     n_nuclei = len(proton_numbers)
     nuclei = [
         nuclear_map.get_data(proton_numbers[idx], mass_numbers[idx])  # type: ignore
@@ -40,7 +41,8 @@ def convert_kinematics_hdf5_to_polars(input_path: Path, output_path: Path) -> No
     }
 
     for event in trange(n_events):
-        dataset: h5.Dataset = input_data_group[f"event_{event}"]  # type: ignore
+        chunk = event // chunk_size  # integer floor division
+        dataset: h5.Dataset = input_data_group[f"chunk_{chunk}"][f"event_{event}"]  # type: ignore
         vx = dataset.attrs["vertex_x"]
         vy = dataset.attrs["vertex_y"]
         vz = dataset.attrs["vertex_z"]

@@ -366,12 +366,17 @@ def run_simulation(
     print("------- AT-TPC Simulation Engine -------")
     print(f"Applying detector effects to kinematics from file: {input_path}")
     input = h5.File(input_path, "r")
-    input_data_group = input["data"]
+    input_data_group: h5.Group = input["data"]  # type: ignore
     proton_numbers = input_data_group.attrs["proton_numbers"]
     mass_numbers = input_data_group.attrs["mass_numbers"]
 
     n_events: int = input_data_group.attrs["n_events"]  # type: ignore
-    print(f"Found {n_events} kinematics events.")
+    miniters = 0.01 * n_events
+    n_chunks: int = input_data_group.attrs["n_chunks"]  # type: ignore
+    chunk_size: int = input_data_group.attrs["chunk_size"]  # type: ignore
+    print(
+        f"Found {n_events} kinematics events in {n_chunks} {chunk_size} event chunks."
+    )
     print(f"Output will be written to {writer.get_directory_name()}.")
 
     rng = default_rng()
@@ -388,8 +393,11 @@ def run_simulation(
         """
     )
 
-    for event_number in trange(n_events):  # type: ignore
-        dataset: h5.Dataset = input_data_group[f"event_{event_number}"]  # type: ignore
+    for event_number in trange(n_events, miniters=miniters):  # type: ignore
+        chunk = event_number // chunk_size  # integer floor division
+        dataset: h5.Dataset = input_data_group[f"chunk_{chunk}"][  # type: ignore
+            f"event_{event_number}"
+        ]  # type: ignore
         sim = SimEvent(
             dataset[:].copy(),  # type: ignore
             np.array(
