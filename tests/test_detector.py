@@ -37,7 +37,7 @@ pads = PadParams()
 
 # Can we load a default config
 def test_config():
-    config = Config(detector, electronics, pads)
+    _ = Config(detector, electronics, pads)
 
 
 # Does simulation event work ok
