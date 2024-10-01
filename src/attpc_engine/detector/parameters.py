@@ -91,6 +91,7 @@ class PadParams:
 
     grid_path: Path | str = DEFAULT
     geometry_path: Path | str = DEFAULT
+    pad_size_path: Path | str = DEFAULT
 
 
 class Config:
@@ -128,6 +129,8 @@ class Config:
         y coordinate.
     drift_velocity: float
         Drift velocity in m / time bucket.
+    pad_sizes: np.ndarray | None
+
 
     Methods
     -------
@@ -156,6 +159,7 @@ class Config:
         self.calculate_drift_velocity()
         self.load_pad_grid()
         self.load_pad_centers()
+        self.load_pad_sizes()
 
     def calculate_drift_velocity(self) -> None:
         """Calculate drift velocity of electrons in the gas.
@@ -219,19 +223,6 @@ class Config:
                     self.pad_centers[pad_number, 0] = float(entries[0])
                     self.pad_centers[pad_number, 1] = float(entries[1])
                 geofile.close()
-        elif self.pad_params.geometry_path == DEFAULT:
-            geom_handle = resources.files("attpc_engine.detector.data").joinpath(
-                "padxy_legacy.csv"
-            )
-            with resources.as_file(geom_handle) as geopath:
-                geofile = open(geopath, "r")
-                geofile.readline()  # Remove header
-                lines = geofile.readlines()
-                for pad_number, line in enumerate(lines):
-                    entries = line.split(",")
-                    self.pad_centers[pad_number, 0] = float(entries[0])
-                    self.pad_centers[pad_number, 1] = float(entries[1])
-                geofile.close()
         else:
             with open(self.pad_params.geometry_path, "r") as geofile:
                 geofile.readline()  # Remove header
@@ -240,4 +231,28 @@ class Config:
                     entries = line.split(",")
                     self.pad_centers[pad_number, 0] = float(entries[0])
                     self.pad_centers[pad_number, 1] = float(entries[1])
+                geofile.close()
+
+    def load_pad_sizes(self) -> None:
+        """ """
+        self.pad_sizes = np.zeros(10240)
+        if self.pad_params.pad_size_path == DEFAULT:
+            geom_handle = resources.files("attpc_engine.detector.data").joinpath(
+                "pad_scale.csv"
+            )
+            with resources.as_file(geom_handle) as geopath:
+                geofile = open(geopath, "r")
+                geofile.readline()  # Remove header
+                lines = geofile.readlines()
+                for pad_number, line in enumerate(lines):
+                    entries = line.split(",")
+                    self.pad_sizes[pad_number] = float(entries[0])
+                geofile.close()
+        else:
+            with open(self.pad_params.geometry_path, "r") as geofile:
+                geofile.readline()  # Remove header
+                lines = geofile.readlines()
+                for pad_number, line in enumerate(lines):
+                    entries = line.split(",")
+                    self.pad_sizes[pad_number] = float(entries[0])
                 geofile.close()
