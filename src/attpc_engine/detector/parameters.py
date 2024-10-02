@@ -234,7 +234,10 @@ class Config:
                 geofile.close()
 
     def load_pad_sizes(self) -> None:
-        """ """
+        """
+        Load the size of each pad from a csv file into a 1D numpy array
+        where the index is the pad number and the entry is the size.
+        """
         self.pad_sizes = np.zeros(10240)
         if self.pad_params.pad_size_path == DEFAULT:
             geom_handle = resources.files("attpc_engine.detector.data").joinpath(
