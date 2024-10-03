@@ -60,6 +60,7 @@ def convert_to_spyral(
     length: float,
     response: np.ndarray,
     pad_centers: np.ndarray,
+    pad_sizes: np.ndarray,
     adc_threshold: int,
 ) -> np.ndarray:
     """
@@ -80,6 +81,8 @@ def convert_to_spyral(
         Response of GET electronics.
     pad_centers: np.ndarray
         (x, y) coordinates of each pad's center on the pad plane in mm.
+    pad_sizes: np.ndarray
+        Contains size of each pad.
     adc_threshold: int
         Minimum ADC signal amplitude a point must have in the point cloud.
 
@@ -102,7 +105,7 @@ def convert_to_spyral(
         storage[idx, 4] = integral
         storage[idx, 5] = point[0]
         storage[idx, 6] = point[1]
-        storage[idx, 7] = 1.0  # Idk we don't even really use this rn
+        storage[idx, 7] = pad_sizes[int(point[0])]
 
     if adc_threshold >= 4095:
         raise ValueError(
@@ -212,6 +215,7 @@ class SpyralWriter:
             config.det_params.length,
             self.response,
             config.pad_centers,
+            config.pad_sizes,
             config.elec_params.adc_threshold,
         )
 
