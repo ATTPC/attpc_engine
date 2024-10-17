@@ -22,7 +22,7 @@ def test_reaction():
     eject_azim = 0.0
     resid_ex = 0.0
 
-    LISE_val = 18.391  # LISE calculated kinetic energy
+    lise_val = 18.391  # LISE calculated kinetic energy
 
     result = rxn.calculate(
         proj_energy, eject_polar, eject_azim, residual_excitation=resid_ex
@@ -33,7 +33,7 @@ def test_reaction():
     eject_ke = result[2].E - result[2].M
 
     # Try to match within 1 keV
-    assert np.round(eject_ke, decimals=3) == LISE_val
+    assert np.round(eject_ke, decimals=3) == lise_val
 
 
 def test_pipeline():
@@ -78,7 +78,7 @@ def test_pipeline():
         assert np.all(vertex == 0.0)
     except PipelineError as e:
         print(f"Failed with error {e}")
-        assert False
+        raise AssertionError() from e
 
 
 def test_pipeline_ex_length():
@@ -108,7 +108,7 @@ def test_pipeline_ex_length():
         pass
     else:
         print("Failed test of matching Excitations/Steps")
-        assert False
+        raise AssertionError()
 
 
 def test_pipeline_pl_length():
@@ -137,7 +137,7 @@ def test_pipeline_pl_length():
         pass
     else:
         print("Failed test of matching Polar Dists./Steps")
-        assert False
+        raise AssertionError()
 
 
 def test_pipeline_chain():
@@ -167,7 +167,7 @@ def test_pipeline_chain():
         pass
     else:
         print("Failed test of matching Steps")
-        assert False
+        raise AssertionError()
 
 
 def test_pipeline_order():
@@ -196,11 +196,11 @@ def test_pipeline_order():
         assert np.all(pipeline.get_proton_numbers() == np.array([5, 2, 2, 5, 2, 3]))
         assert np.all(pipeline.get_mass_numbers() == np.array([10, 3, 4, 9, 4, 5]))
         assert len(result) == 6
-    except PipelineError as e:
+    except PipelineError as _:
         pass
     else:
         print("Failed out-of-order test")
-        assert False
+        raise AssertionError()
 
 
 def test_pipeline_sample_limit():
@@ -228,8 +228,8 @@ def test_pipeline_sample_limit():
         assert np.all(pipeline.get_proton_numbers() == np.array([5, 2, 2, 5, 2, 3]))
         assert np.all(pipeline.get_mass_numbers() == np.array([10, 3, 4, 9, 4, 5]))
         assert len(result) == 6
-    except PipelineError as e:
+    except PipelineError as _:
         pass
     else:
         print("Failed out-of-order test")
-        assert False
+        raise AssertionError()

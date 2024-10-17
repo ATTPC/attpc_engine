@@ -371,7 +371,7 @@ def run_simulation(
     mass_numbers = input_data_group.attrs["mass_numbers"]
 
     n_events: int = input_data_group.attrs["n_events"]  # type: ignore
-    miniters = 0.01 * n_events
+    miniters = int(0.01 * n_events)
     n_chunks: int = input_data_group.attrs["n_chunks"]  # type: ignore
     chunk_size: int = input_data_group.attrs["chunk_size"]  # type: ignore
     print(
