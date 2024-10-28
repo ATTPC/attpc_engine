@@ -164,13 +164,13 @@ electronics = ElectronicsParams(
     shaping_time=1000,
     micromegas_edge=10,
     windows_edge=560,
-    adc_threshold=40,
+    adc_threshold=10,
 )
 
 pads = PadParams()
 
 config = Config(detector, electronics, pads)
-writer = SpyralWriter(output_path, config, 1_000_000_000)
+writer = SpyralWriter(output_path, config, 5_000)
 
 def main():
     run_simulation(
@@ -216,7 +216,7 @@ electronics = ElectronicsParams(
     shaping_time=1000,
     micromegas_edge=10,
     windows_edge=560,
-    adc_threshold=40,
+    adc_threshold=10,
 )
 
 pads = PadParams()
@@ -224,10 +224,10 @@ pads = PadParams()
 config = Config(detector, electronics, pads)
 ```
 
-Note that by not passing any arguments to `PadParams` we are using the default pad description that is bundled with the package. See the [detector](./detector/index.md) guide for more details. For the output, we create a SpyralWriter object. This will take in the simulation data and convert it to match the format expected by the Spyral analysis. Note the final argument of the Writer; this is the maximum size of an individual file in bytes (here we've specified 1GB). The writer will then split our output up into many files, which will help later when trying to analyze the data with a framework like Spyral.
+Note that by not passing any arguments to `PadParams` we are using the default pad description that is bundled with the package. See the [detector](./detector/index.md) guide for more details. For the output, we create a SpyralWriter object. This will take in the simulation data and convert it to match the format expected by the Spyral analysis. Note the final argument of the Writer; this is the maximum size of an individual file in events (here we've specified 5,000 events). The writer will then split our output up into many files, which will help later when trying to analyze the data with a framework like Spyral.
 
 ```python
-writer = SpyralWriter(output_path, config, 1_000_000_000)
+writer = SpyralWriter(output_path, config, 5_000)
 ```
 
 Then, just like in the kinematics script we set up a main function and set it to be run when the script is processed
