@@ -229,6 +229,8 @@ class SpyralWriter:
             f"cloud_{event_number}", data=spyral_format
         )
 
+        dset.attrs["orig_run"] = self.run_number
+        dset.attrs["orig_event"] = event_number
         # No ic stuff from simulation
         dset.attrs["ic_amplitude"] = -1.0
         dset.attrs["ic_multiplicity"] = -1.0
