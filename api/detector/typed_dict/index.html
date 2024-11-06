@@ -10,28 +10,28 @@
       
       
       
-        <link rel="canonical" href="https://example.com/user_guide/systems/">
+        <link rel="canonical" href="https://example.com/api/detector/typed_dict/">
       
       
-        <link rel="prev" href="../getting_started/">
+        <link rel="prev" href="../transporter/">
       
       
-        <link rel="next" href="../kinematics/">
+        <link rel="next" href="../writer/">
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
     
     
       
-        <title>About Systems - attpc_engine</title>
+        <title>typed_dict - attpc_engine</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.bcfcd587.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -50,9 +50,9 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#systems" class="md-skip">
+        <a href="#typed_dict-module" class="md-skip">
           Skip to content
         </a>
       
@@ -94,7 +94,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="attpc_engine" class="md-header__button md-logo" aria-label="attpc_engine" data-md-component="logo">
+    <a href="../../.." title="attpc_engine" class="md-header__button md-logo" aria-label="attpc_engine" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              About Systems
+              typed_dict
             
           </span>
         </div>
@@ -190,7 +190,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="attpc_engine" class="md-nav__button md-logo" aria-label="attpc_engine" data-md-component="logo">
+    <a href="../../.." title="attpc_engine" class="md-nav__button md-logo" aria-label="attpc_engine" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
@@ -220,7 +220,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -237,19 +237,17 @@
       
   
   
-    
   
   
-  
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
@@ -263,7 +261,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             User Guide
@@ -277,7 +275,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../setup/" class="md-nav__link">
+      <a href="../../../user_guide/setup/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -298,7 +296,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting_started/" class="md-nav__link">
+      <a href="../../../user_guide/getting_started/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -316,19 +314,17 @@
                 
   
   
-    
   
   
-  
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
         
           
           <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
@@ -342,7 +338,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_3">
             <span class="md-nav__icon md-icon"></span>
             Systems
@@ -353,30 +349,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    About Systems
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../user_guide/systems/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -385,35 +361,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#why-are-they-separate" class="md-nav__link">
-    <span class="md-ellipsis">
-      Why are they separate
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -426,7 +373,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../kinematics/" class="md-nav__link">
+      <a href="../../../user_guide/kinematics/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -447,7 +394,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detector/" class="md-nav__link">
+      <a href="../../../user_guide/detector/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -476,7 +423,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../numba/" class="md-nav__link">
+      <a href="../../../user_guide/numba/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -501,17 +448,19 @@
       
   
   
+    
   
   
+  
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -525,7 +474,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             API Reference
@@ -539,7 +488,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/" class="md-nav__link">
+      <a href="../../" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -557,17 +506,19 @@
                 
   
   
+    
   
   
+  
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
         
           
           <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
@@ -581,7 +532,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             detector
@@ -595,7 +546,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/detector/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -616,7 +567,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/detector/beam_pads/" class="md-nav__link">
+      <a href="../beam_pads/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -637,7 +588,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/detector/constants/" class="md-nav__link">
+      <a href="../constants/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -658,7 +609,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/detector/pairing/" class="md-nav__link">
+      <a href="../pairing/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -679,7 +630,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/detector/parameters/" class="md-nav__link">
+      <a href="../parameters/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -700,7 +651,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/detector/response/" class="md-nav__link">
+      <a href="../response/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -721,7 +672,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/detector/simulator/" class="md-nav__link">
+      <a href="../simulator/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -742,7 +693,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/detector/solver/" class="md-nav__link">
+      <a href="../solver/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -763,7 +714,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/detector/transporter/" class="md-nav__link">
+      <a href="../transporter/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -781,10 +732,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../api/detector/typed_dict/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    typed_dict
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -793,6 +764,44 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#attpc_engine.detector.typed_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      typed_dict
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#attpc_engine.detector.typed_dict.NumbaTypedDict" class="md-nav__link">
+    <span class="md-ellipsis">
+      NumbaTypedDict
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -805,7 +814,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/detector/writer/" class="md-nav__link">
+      <a href="../writer/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -869,7 +878,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/kinematics/" class="md-nav__link">
+      <a href="../../kinematics/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -890,7 +899,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/kinematics/excitation/" class="md-nav__link">
+      <a href="../../kinematics/excitation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -911,7 +920,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/kinematics/angle/" class="md-nav__link">
+      <a href="../../kinematics/angle/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -932,7 +941,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/kinematics/pipeline/" class="md-nav__link">
+      <a href="../../kinematics/pipeline/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -953,7 +962,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/kinematics/reaction/" class="md-nav__link">
+      <a href="../../kinematics/reaction/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -989,7 +998,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../faq/" class="md-nav__link">
+      <a href="../../../faq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1009,7 +1018,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../for_devs/" class="md-nav__link">
+      <a href="../../../for_devs/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1049,9 +1058,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#why-are-they-separate" class="md-nav__link">
+  <a href="#attpc_engine.detector.typed_dict" class="md-nav__link">
     <span class="md-ellipsis">
-      Why are they separate
+      typed_dict
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#attpc_engine.detector.typed_dict.NumbaTypedDict" class="md-nav__link">
+    <span class="md-ellipsis">
+      NumbaTypedDict
     </span>
   </a>
   
@@ -1075,12 +1093,149 @@
   
 
 
-<h1 id="systems">Systems</h1>
-<p>As shown in the <a href="../getting_started/">getting started</a> disucssion, attpc_engine really has two separate subsystems: the <a href="../kinematics/">kinematics</a> sampler and the <a href="../detector/">detector</a> effects. These two systems are (mostly) distinct and are two separate modules rolled into one package.</p>
-<h2 id="why-are-they-separate">Why are they separate</h2>
-<p>There are a couple of reasons why they're separated. First, they don't really need to know much about each other. The only real information leakage is the target material (what gas you're using and how much volume you allow the reaction vertex to travel through). So in that sense, they really shouldn't contact each other!</p>
-<p>But more importantly, separating them allows you to save intermediate steps. Consider the following:</p>
-<p>Say you are testing the detection effciency for a reaction where you already have some data. You generate the kinematics, and you need a lot of samples so it takes forever, hours or maybe even a day. Then you run it through the detector system and see that oh no you forgot to set the electric field correctly! If the systems were directly coupled, you would have to rerun everything, including the kinematics! With them separated, you only need to rerun the detector system, saving you time and effort. </p>
+<h1 id="typed_dict-module">typed_dict Module</h1>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="attpc_engine.detector.typed_dict"></a>
+    <div class="doc doc-contents first">
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="attpc_engine.detector.typed_dict.NumbaTypedDict" class="doc doc-heading">
+            <code>NumbaTypedDict</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="typing.Generic">Generic</span>[<span title="attpc_engine.detector.typed_dict.K">K</span>, <span title="attpc_engine.detector.typed_dict.V">V</span>]</code></p>
+
+
+      <p>This is simply a type hint interface for Numba typed dictionaries</p>
+<p>Use this as a type hint wherever you would be using numba.typed.Dict
+and magically all of your linters will be happy.</p>
+<p>Example:
+<div class="language-py highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">my_dict</span> <span class="o">=</span> <span class="n">numba</span><span class="o">.</span><span class="n">typed</span><span class="o">.</span><span class="n">Dict</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">key_type</span><span class="o">=</span><span class="n">numba</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">value_type</span><span class="o">=</span><span class="n">numba</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">int64</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span>
+</span></code></pre></div>
+is type-hinted as
+<div class="language-py highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">my_dict</span><span class="p">:</span> <span class="n">NumbaTypedDict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+</span></code></pre></div></p>
+<p>Do not attempt to instantiate this object! It won't work!</p>
+
+              <details class="quote">
+                <summary>Source code in <code>src/attpc_engine/detector/typed_dict.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-0-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-0-10">10</a></span>
+<span class="normal"><a href="#__codelineno-0-11">11</a></span>
+<span class="normal"><a href="#__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="k">class</span> <span class="nc">NumbaTypedDict</span><span class="p">(</span><span class="n">Generic</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">]):</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;This is simply a type hint interface for Numba typed dictionaries</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="sd">    Use this as a type hint wherever you would be using numba.typed.Dict</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="sd">    and magically all of your linters will be happy.</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="sd">    Example:</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">    ```py</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">    my_dict = numba.typed.Dict.empty(</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">        key_type=numba.core.types.int64,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">        value_type=numba.core.types.int64</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    )</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">    ```</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">    is type-hinted as</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">    ```py</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">    my_dict: NumbaTypedDict[int, int]</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">    ```</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">    Do not attempt to instantiate this object! It won&#39;t work!</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">V</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a>    <span class="k">def</span> <span class="nf">items</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">]]:</span> <span class="o">...</span>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">V</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V</span><span class="p">:</span> <span class="o">...</span>
+</span></code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 
@@ -1127,12 +1282,12 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../../..", "features": [], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.1e8ae164.min.js"></script>
       
-        <script src="../../javascript/mathjax.js"></script>
+        <script src="../../../javascript/mathjax.js"></script>
       
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
       

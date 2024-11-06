@@ -674,6 +674,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api/detector/pairing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    pairing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/detector/parameters/" class="md-nav__link">
         
   
@@ -763,6 +784,27 @@
   
   <span class="md-ellipsis">
     transporter
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/detector/typed_dict/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    typed_dict
   </span>
   
 
@@ -1203,13 +1245,13 @@
 </span><span id="__span-7-34"><a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a>    <span class="n">shaping_time</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
 </span><span id="__span-7-35"><a id="__codelineno-7-35" name="__codelineno-7-35" href="#__codelineno-7-35"></a>    <span class="n">micromegas_edge</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
 </span><span id="__span-7-36"><a id="__codelineno-7-36" name="__codelineno-7-36" href="#__codelineno-7-36"></a>    <span class="n">windows_edge</span><span class="o">=</span><span class="mi">560</span><span class="p">,</span>
-</span><span id="__span-7-37"><a id="__codelineno-7-37" name="__codelineno-7-37" href="#__codelineno-7-37"></a>    <span class="n">adc_threshold</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+</span><span id="__span-7-37"><a id="__codelineno-7-37" name="__codelineno-7-37" href="#__codelineno-7-37"></a>    <span class="n">adc_threshold</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
 </span><span id="__span-7-38"><a id="__codelineno-7-38" name="__codelineno-7-38" href="#__codelineno-7-38"></a><span class="p">)</span>
 </span><span id="__span-7-39"><a id="__codelineno-7-39" name="__codelineno-7-39" href="#__codelineno-7-39"></a>
 </span><span id="__span-7-40"><a id="__codelineno-7-40" name="__codelineno-7-40" href="#__codelineno-7-40"></a><span class="n">pads</span> <span class="o">=</span> <span class="n">PadParams</span><span class="p">()</span>
 </span><span id="__span-7-41"><a id="__codelineno-7-41" name="__codelineno-7-41" href="#__codelineno-7-41"></a>
 </span><span id="__span-7-42"><a id="__codelineno-7-42" name="__codelineno-7-42" href="#__codelineno-7-42"></a><span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">detector</span><span class="p">,</span> <span class="n">electronics</span><span class="p">,</span> <span class="n">pads</span><span class="p">)</span>
-</span><span id="__span-7-43"><a id="__codelineno-7-43" name="__codelineno-7-43" href="#__codelineno-7-43"></a><span class="n">writer</span> <span class="o">=</span> <span class="n">SpyralWriter</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="mi">1_000_000_000</span><span class="p">)</span>
+</span><span id="__span-7-43"><a id="__codelineno-7-43" name="__codelineno-7-43" href="#__codelineno-7-43"></a><span class="n">writer</span> <span class="o">=</span> <span class="n">SpyralWriter</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="mi">5_000</span><span class="p">)</span>
 </span><span id="__span-7-44"><a id="__codelineno-7-44" name="__codelineno-7-44" href="#__codelineno-7-44"></a>
 </span><span id="__span-7-45"><a id="__codelineno-7-45" name="__codelineno-7-45" href="#__codelineno-7-45"></a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
 </span><span id="__span-7-46"><a id="__codelineno-7-46" name="__codelineno-7-46" href="#__codelineno-7-46"></a>    <span class="n">run_simulation</span><span class="p">(</span>
@@ -1246,15 +1288,15 @@
 </span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>    <span class="n">shaping_time</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
 </span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>    <span class="n">micromegas_edge</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
 </span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>    <span class="n">windows_edge</span><span class="o">=</span><span class="mi">560</span><span class="p">,</span>
-</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>    <span class="n">adc_threshold</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>    <span class="n">adc_threshold</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
 </span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="p">)</span>
 </span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>
 </span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="n">pads</span> <span class="o">=</span> <span class="n">PadParams</span><span class="p">()</span>
 </span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>
 </span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">detector</span><span class="p">,</span> <span class="n">electronics</span><span class="p">,</span> <span class="n">pads</span><span class="p">)</span>
 </span></code></pre></div>
-<p>Note that by not passing any arguments to <code>PadParams</code> we are using the default pad description that is bundled with the package. See the <a href="../detector/">detector</a> guide for more details. For the output, we create a SpyralWriter object. This will take in the simulation data and convert it to match the format expected by the Spyral analysis. Note the final argument of the Writer; this is the maximum size of an individual file in bytes (here we've specified 1GB). The writer will then split our output up into many files, which will help later when trying to analyze the data with a framework like Spyral.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">writer</span> <span class="o">=</span> <span class="n">SpyralWriter</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="mi">1_000_000_000</span><span class="p">)</span>
+<p>Note that by not passing any arguments to <code>PadParams</code> we are using the default pad description that is bundled with the package. See the <a href="../detector/">detector</a> guide for more details. For the output, we create a SpyralWriter object. This will take in the simulation data and convert it to match the format expected by the Spyral analysis. Note the final argument of the Writer; this is the maximum size of an individual file in events (here we've specified 5,000 events). The writer will then split our output up into many files, which will help later when trying to analyze the data with a framework like Spyral.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">writer</span> <span class="o">=</span> <span class="n">SpyralWriter</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="mi">5_000</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Then, just like in the kinematics script we set up a main function and set it to be run when the script is processed</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>

@@ -727,6 +727,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api/detector/pairing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    pairing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/detector/parameters/" class="md-nav__link">
         
   
@@ -816,6 +837,27 @@
   
   <span class="md-ellipsis">
     transporter
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/detector/typed_dict/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    typed_dict
   </span>
   
 
@@ -1217,7 +1259,7 @@ z_{tb} = \frac{l - z_{coord}}{v_{e}} + m_{tb}
 <h2 id="writing-the-point-cloud-to-disk">Writing the Point cloud to disk</h2>
 <p>The final step of the process is to write the simulated detector response to disk. attpc_engine aims to be analysis agnostic, and as such does not fomrally define the format of the output. Instead, attpc_engine provides a <code>SimulationWriter</code> <a href="https://typing.readthedocs.io/en/latest/spec/protocol.html#protocols">protocol</a> class. Users can define their own writer, so long as it implements the methods required by the <code>SimulationWriter</code> protocol.</p>
 <h3 id="use-with-spyral">Use with Spyral</h3>
-<p>For convience, attpc_engine includes a <code>SpyralWriter</code>, which will output a HDF5 file formatted to mimic <a href="https://attpc.github.io/Spyral">Spyral</a>, the AT-TPC group-supported analysis framework. <code>SpyralWriter</code> also includes the useful feature of splitting the output into multiple files based on file size, which can help take advantage of parallel analysis pipelines. Note that attpc_engine does not claim to provide values in the integral or amplitude fields of a Spyral point cloud that will match real data; <code>SpyralWriter</code> use the <a href="https://www.sciencedirect.com/science/article/pii/S0168900216309408?casa_token=DAWbhPvX49MAAAAA:Zen7nFs-pgG9wu__g0rrzus01B1pa7ZYspbz_KOnn-dZyhXNglEqtgywFKwYrvKKsIwEY10n49XV">theoretical response function</a> of the GET electronics to make an attempt to approximate the amplitude and integral, but this should be regarded as dubious at best.</p>
+<p>For convience, attpc_engine includes a <code>SpyralWriter</code>, which will output a HDF5 file formatted to mimic <a href="https://attpc.github.io/Spyral">Spyral</a>, the AT-TPC group-supported analysis framework. <code>SpyralWriter</code> also includes the useful feature of splitting the output into multiple files based on number of events, which can help take advantage of parallel analysis pipelines. Note that attpc_engine does not claim to provide values in the integral or amplitude fields of a Spyral point cloud that will match real data; <code>SpyralWriter</code> use the <a href="https://www.sciencedirect.com/science/article/pii/S0168900216309408?casa_token=DAWbhPvX49MAAAAA:Zen7nFs-pgG9wu__g0rrzus01B1pa7ZYspbz_KOnn-dZyhXNglEqtgywFKwYrvKKsIwEY10n49XV">theoretical response function</a> of the GET electronics to make an attempt to approximate the amplitude and integral, but this should be regarded as dubious at best.</p>
 <p>Given that attpc_engine outputs point clouds, the results should not be run through the PointcloudPhase, rather starting directly with the ClusterPhase. Note that because Spyral expects trace data, one will need to "fake" the trace datapath. The simplest way to do this is to point the trace path to the Pointcloud directory of the workspace. Just be sure not to run the PointcloudPhase in this case!</p>
 
 
