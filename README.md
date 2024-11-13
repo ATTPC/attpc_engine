@@ -3,6 +3,7 @@
 ![CI](https://github.com/ATTPC/attpc_engine/actions/workflows/ci.yml/badge.svg)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/attpc_engine.svg)](https://pypi.python.org/pypi/attpc_engine/)
 [![PyPI license](https://img.shields.io/pypi/l/attpc_engine.svg)](https://pypi.python.org/pypi/attpc_engine/)
+[![DOI](https://zenodo.org/badge/787603438.svg)](https://doi.org/10.5281/zenodo.14143362)
 
 The Python AT-TPC Monte Carlo simulation engine. The engine can provide both a multi-step kinematics sample as well as simulate AT-TPC detector effects.
 
