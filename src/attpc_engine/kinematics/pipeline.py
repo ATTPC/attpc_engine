@@ -174,7 +174,7 @@ class KinematicsPipeline:
                     != cur_step.parent.isotopic_symbol
                 ):
                     raise PipelineError(
-                        f"Broken step in pipeline! Step {idx-1} residual_2 does not match Step {idx} parent!"
+                        f"Broken step in pipeline! Step {idx - 1} residual_2 does not match Step {idx} parent!"
                     )
             self.decays.append(cur_step)
 
