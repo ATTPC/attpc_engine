@@ -224,6 +224,9 @@ class SpyralWriter:
             config.pad_sizes,
             config.elec_params.adc_threshold,
         )
+        # Make sure we're still sorted in z
+        indicies = np.argsort(spyral_format[:, 2])
+        spyral_format = spyral_format[indicies]
 
         dset = self.cloud_group.create_dataset(
             f"cloud_{event_number}", data=spyral_format
