@@ -1,15 +1,15 @@
 [project]
 name = "attpc_engine"
-version = "0.6.0"
+version = "0.6.2"
 description = "AT-TPC Monte-Carlo simulation engine"
 authors = [
     {name = "Gordon McCann", email = "gordonmccann215@gmail.com"},
     {name = "Zach Serikow", email = "zachserikow@gmail.com"},
 ]
 dependencies = [
-    "spyral-utils>=1.0.0",
+    "spyral-utils>=2.0.0",
     "h5py>=3.11.0",
-    "numba>=0.59.1",
+    "numba>=0.61.0",
     "tqdm>=4.66.4",
     "scipy>=1.14.0",
 ]

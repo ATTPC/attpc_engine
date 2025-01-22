@@ -7,10 +7,10 @@ from attpc_engine.detector import (
 from attpc_engine.detector.simulator import SimEvent
 from attpc_engine import nuclear_map
 
-from spyral_utils.nuclear.target import TargetData, GasTarget
+from spyral_utils.nuclear.target import GasTarget
 import numpy as np
 
-gas = GasTarget(TargetData([(1, 2, 2)], pressure=300.0), nuclear_map)
+gas = GasTarget([(1, 2, 2)], 300.0, nuclear_map)
 
 detector = DetectorParams(
     length=1.0,
