@@ -2,132 +2,132 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://example.com/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/faq/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/for_devs/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/detector/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/detector/beam_pads/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/detector/constants/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/detector/pairing/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/detector/parameters/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/detector/response/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/detector/simulator/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/detector/solver/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/detector/transporter/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/detector/typed_dict/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/detector/writer/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/kinematics/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/kinematics/angle/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/kinematics/excitation/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/kinematics/pipeline/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/api/kinematics/reaction/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/user_guide/getting_started/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/user_guide/numba/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/user_guide/setup/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/user_guide/systems/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/user_guide/detector/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://example.com/user_guide/kinematics/</loc>
-         <lastmod>2024-11-06</lastmod>
+         <lastmod>2025-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
