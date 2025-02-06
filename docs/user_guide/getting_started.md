@@ -6,6 +6,7 @@ Once attpc_engine is installed it's time to setup our simulation project. Below 
 |---my_sim
 |   |---generate_kinematics.py
 |   |---apply_detector.py
+|   |---target.json
 |   |---.venv
 |   |---output
 |   |   |---kinematics
@@ -30,15 +31,17 @@ from attpc_engine.kinematics import (
     Reaction,
 )
 from attpc_engine import nuclear_map
-from spyral_utils.nuclear.target import TargetData, GasTarget
+from spyral_utils.nuclear.target import load_target, GasTarget
 from pathlib import Path
 import numpy as np
 
 output_path = Path("./output/kinematics/c16dd_d2_300Torr_184MeV.h5")
+target_path = Path("./target.json")
 
-target = GasTarget(
-    TargetData(compound=[(1, 2, 2)], pressure=300.0, thickness=None), nuclear_map
-)
+target = load_target(target_path, nuclear_map)
+# Check that our target loaded...
+if not isinstance(target, GasTarget):
+    raise Exception(f"Could not load target data from {target_path}!")
 
 nevents = 10000
 
@@ -69,12 +72,14 @@ if __name__ == "__main__":
 
 First we import all of our pieces from the attpc_engine library and its dependencies. We also import the Python standard library Path object to handle our file paths.
 
-We then start to define our kinematics configuration. First we define the output path to be an HDF5 file in our output directory. We also define a spyral-utils [gas target](https://attpc.github.io/spyral-utils/api/nuclear/target) of  $^2H_2$ at 300 Torr pressure.
+We then start to define our kinematics configuration. First we define the output path to be an HDF5 file in our output directory. 
+We also load a spyral-utils [gas target](https://attpc.github.io/spyral-utils/api/nuclear/target) from a file path.
 
 ```python
-target = GasTarget(
-    TargetData(compound=[(1, 2, 2)], pressure=300.0, thickness=None), nuclear_map
-)
+target = load_target(target_path, nuclear_map)
+# Check that our target loaded...
+if not isinstance(target, GasTarget):
+    raise Exception(f"Could not load target data from {target_path}!")
 ```
 
 We ask for 10000 events to be sampled, and set our beam energy to about 184 MeV.
@@ -145,7 +150,12 @@ input_path = Path("./output/kinematics/c16dd_d2_300Torr_184MeV.h5")
 output_path = Path("./output/detector/")
 
 
-gas = GasTarget(TargetData([(1, 2, 2)], pressure=300.0), nuclear_map)
+target_path = Path("./target.json")
+
+gas = load_target(target_path, nuclear_map)
+# Check that our target loaded...
+if not isinstance(gas, GasTarget):
+    raise Exception(f"Could not load target data from {target_path}!")
 
 detector = DetectorParams(
     length=1.0,
@@ -193,7 +203,10 @@ output_path = Path("output/detector/run_0001.h5")
 Then we define the same gas target that we used in the kinematics pipeline
 
 ```python
-gas = GasTarget(TargetData([(1, 2, 2)], pressure=300.0), nuclear_map)
+gas = load_target(target_path, nuclear_map)
+# Check that our target loaded...
+if not isinstance(gas, GasTarget):
+    raise Exception(f"Could not load target data from {target_path}!")
 ```
 
 and finally we begin to define the detector specific configuration, which is ultimately stored in a Config object.
