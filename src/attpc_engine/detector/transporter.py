@@ -275,7 +275,6 @@ def find_pads_hit(
     # Point transport
     if sigma_t == 0.0:
         point_transport(pad_grid, grid_edges, time, center, electrons, points)
-
     # Transverse diffusion transport
     else:
         transverse_transport(
