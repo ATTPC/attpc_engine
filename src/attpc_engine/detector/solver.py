@@ -346,6 +346,7 @@ def generate_point_cloud(
     config: Config,
     rng: Generator,
     points: NumbaTypedDict,
+    label: int,
 ) -> None:
     """Create the point cloud
 
@@ -391,4 +392,5 @@ def generate_point_cloud(
         track,
         electrons,
         points,
+        label,
     )

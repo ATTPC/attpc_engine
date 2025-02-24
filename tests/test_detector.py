@@ -4,7 +4,7 @@ from attpc_engine.detector import (
     PadParams,
     Config,
 )
-from attpc_engine.detector.simulator import SimEvent
+from attpc_engine.detector.simulator import simulate
 from attpc_engine import nuclear_map
 
 from spyral_utils.nuclear.target import GasTarget
@@ -45,17 +45,19 @@ def test_simulation_event():
     # all protons bby
     fake_data = np.array(
         [
-            [0.0, 0.0, 0.0, 938.0],
-            [0.0, 0.0, 0.0, 938.0],
-            [0.0, 0.0, 0.0, 938.0],
-            [0.0, 0.0, 0.0, 938.0],
+            [0.0, 0.0, 10.0, 938.0],
+            [0.0, 0.0, 10.0, 938.0],
+            [0.0, 0.0, 10.0, 938.0],
+            [0.0, 0.0, 10.0, 938.0],
         ]
     )
 
     proton_numbers = np.array([1, 1, 1, 1])
     mass_numbers = np.array([1, 1, 1, 1])
     vertex = np.array([1.0, 1.0, 1.0])
+    config = Config(detector, electronics, pads)
+    rng = np.random.default_rng()
 
-    event = SimEvent(fake_data, vertex, proton_numbers, mass_numbers)
+    event = simulate(fake_data, vertex, proton_numbers, mass_numbers, config, rng, [0])
 
-    assert len(event.nuclei) == 2
+    assert len(event) == 2

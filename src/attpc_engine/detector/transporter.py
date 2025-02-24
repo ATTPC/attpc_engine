@@ -124,7 +124,8 @@ def point_transport(
     time: float,
     center: tuple[float, float],
     electrons: int,
-    points: NumbaTypedDict[int, int],
+    points: NumbaTypedDict[int, tuple[int, int]],
+    label: int,
 ):
     """
     Transports all electrons created at a point in a simulated nucleus' track
@@ -157,9 +158,9 @@ def point_transport(
     if pad != -1 and pad not in BEAM_PADS_ARRAY:
         tb = int(time)  # Convert from absolute time bucket to discretized
         id = pair(tb, pad)
-        points[id] = (
-            points.get(id, 0) + electrons
-        )  # The get returns 0 if the key doesn't exist
+        charge, _ = points.get(id, (0, 0))  # The get returns 0 if the key doesn't exist
+        charge += electrons
+        points[id] = (charge, label)
 
 
 @njit
@@ -170,7 +171,8 @@ def transverse_transport(
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-    points: NumbaTypedDict[int, int],
+    points: NumbaTypedDict[int, tuple[int, int]],
+    label: int,
 ):
     """
     Transports all electrons created at a point in a simulated nucleus'
@@ -233,59 +235,9 @@ def transverse_transport(
                     * electrons
                 )
             )
-            points[id] = (
-                points.get(id, 0) + pixel_electrons
-            )  # The get returns 0 if the key doesn't exist
-
-
-@njit
-def find_pads_hit(
-    pad_grid: np.ndarray,
-    grid_edges: np.ndarray,
-    time: float,
-    center: tuple[float, float],
-    electrons: int,
-    sigma_t: float,
-    points: NumbaTypedDict[int, int],
-):
-    """
-    Finds the pads hit by transporting the electrons created at a point in
-    the nucleus' trajectory to the pad plane and applies transverse diffusion, if selected.
-
-    Parameters
-    ----------
-    pad_grid: numpy.ndarray
-        Grid of pad id for a given index, where index is calculated from x-y position
-    grid_edges: numpy.ndarray
-        Edges of the pad grid in mm, as well as the step size of the grid in mm
-        Allows conversion of position to grid index. 3 element array [low_edge, hi_edge, step]
-    time: float
-        Time of point being transported.
-    center: tuple[float, float]
-        (x,y) position of point being transported.
-    electrons: int
-        Number of electrons made at point being transported.
-    sigma_t: float
-        Standard deviation of transverse diffusion at point
-        being transported.
-    points: numba.typed.Dict[int, int]
-        A dictionary mapping a unique pad,tb key to the number of electrons, which
-        will be filled by this function
-    """
-    # Point transport
-    if sigma_t == 0.0:
-        point_transport(pad_grid, grid_edges, time, center, electrons, points)
-    # Transverse diffusion transport
-    else:
-        transverse_transport(
-            pad_grid,
-            grid_edges,
-            time,
-            center,
-            electrons,
-            sigma_t,
-            points,
-        )
+            charge, _ = points.get(id, (0, 0))
+            charge += pixel_electrons
+            points[id] = (charge, label)  # The get returns 0 if the key doesn't exist
 
 
 @njit
@@ -297,7 +249,8 @@ def transport_track(
     dv: float,
     track: np.ndarray,
     electrons: np.ndarray,
-    points: NumbaTypedDict[int, int],
+    points: NumbaTypedDict[int, tuple[int, int]],
+    label: int,
 ):
     """
     High-level function that transports each point in a nucleus' trajectory
@@ -333,6 +286,19 @@ def transport_track(
         center = (row[0], row[1])
         point_electrons = electrons[idx]
         sigma_t = np.sqrt(2.0 * diffusion * dv * time / efield)
-        find_pads_hit(
-            pad_grid, grid_edges, time, center, point_electrons, sigma_t, points
-        )
+        if sigma_t == 0.0:
+            point_transport(
+                pad_grid, grid_edges, time, center, point_electrons, points, label
+            )
+        # Transverse diffusion transport
+        else:
+            transverse_transport(
+                pad_grid,
+                grid_edges,
+                time,
+                center,
+                point_electrons,
+                sigma_t,
+                points,
+                label,
+            )

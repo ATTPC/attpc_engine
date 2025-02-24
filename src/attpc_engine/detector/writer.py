@@ -23,7 +23,9 @@ class SimulationWriter(Protocol):
         Closes the writer.
     """
 
-    def write(self, data: np.ndarray, config: Config, event_number: int) -> None:
+    def write(
+        self, data: np.ndarray, labels: np.ndarray, config: Config, event_number: int
+    ) -> None:
         """
         Writes a simulated point cloud to the point cloud file.
 
@@ -83,8 +85,6 @@ def convert_to_spyral(
         (x, y) coordinates of each pad's center on the pad plane in mm.
     pad_sizes: np.ndarray
         Contains size of each pad.
-    adc_threshold: int
-        Minimum ADC signal amplitude a point must have in the point cloud.
 
     Returns
     -------
@@ -107,11 +107,7 @@ def convert_to_spyral(
         storage[idx, 6] = point[1]
         storage[idx, 7] = pad_sizes[int(point[0])]
 
-    if adc_threshold >= 4095:
-        raise ValueError(
-            "adc_threshold cannot be equal to or greater than the max GET ADC value!"
-        )
-    return storage[storage[:, 3] > adc_threshold]
+    return storage
 
 
 class SpyralWriter:
@@ -191,7 +187,9 @@ class SpyralWriter:
         self.file = h5.File(path, "w")
         self.cloud_group: h5.Group = self.file.create_group("cloud")
 
-    def write(self, data: np.ndarray, config: Config, event_number: int) -> None:
+    def write(
+        self, data: np.ndarray, labels: np.ndarray, config: Config, event_number: int
+    ) -> None:
         """
         Writes a simulated point cloud to the point cloud file.
 
@@ -224,21 +222,27 @@ class SpyralWriter:
             config.pad_sizes,
             config.elec_params.adc_threshold,
         )
+        # apply ADC threshold
+        mask = spyral_format[:, 3] > config.elec_params.adc_threshold
+        spyral_format = spyral_format[mask]
+        labels = labels[mask]
         # Make sure we're still sorted in z
         indicies = np.argsort(spyral_format[:, 2])
         spyral_format = spyral_format[indicies]
+        labels = labels[indicies]
 
-        dset = self.cloud_group.create_dataset(
+        pc_dset = self.cloud_group.create_dataset(
             f"cloud_{event_number}", data=spyral_format
         )
-
-        dset.attrs["orig_run"] = self.run_number
-        dset.attrs["orig_event"] = event_number
+        pc_dset.attrs["orig_run"] = self.run_number
+        pc_dset.attrs["orig_event"] = event_number
         # No ic stuff from simulation
-        dset.attrs["ic_amplitude"] = -1.0
-        dset.attrs["ic_multiplicity"] = -1.0
-        dset.attrs["ic_integral"] = -1.0
-        dset.attrs["ic_centroid"] = -1.0
+        pc_dset.attrs["ic_amplitude"] = -1.0
+        pc_dset.attrs["ic_multiplicity"] = -1.0
+        pc_dset.attrs["ic_integral"] = -1.0
+        pc_dset.attrs["ic_centroid"] = -1.0
+
+        _ = self.cloud_group.create_dataset(f"labels_{event_number}", data=labels)
 
         # We wrote an event
         self.events_written += 1

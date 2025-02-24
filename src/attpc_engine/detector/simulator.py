@@ -17,7 +17,9 @@ from numba import njit
 
 
 @njit
-def dict_to_points(points: NumbaTypedDict[int, int]) -> np.ndarray:
+def dict_to_points(
+    points: NumbaTypedDict[int, tuple[int, int]],
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Converts dictionary of N pad,tb keys with corresponding number of electrons
     to Nx3 array where each row is [pad, tb, e], now combined over pad/tb combos.
@@ -29,17 +31,19 @@ def dict_to_points(points: NumbaTypedDict[int, int]) -> np.ndarray:
 
     Returns
     -------
-    point_array: numpy.ndarray
-        Array of points.
+    tuple[numpy.ndarray, numpy.ndarray]
+        Array of points and lables (in that order)
     """
     point_array = np.empty((len(points), 3), dtype=float)
-    for idx, point in enumerate(points.items()):
-        tb, pad = unpair(point[0])
+    label_array = np.empty(len(points), dtype=types.int64)
+    for idx, (key, data) in enumerate(points.items()):
+        tb, pad = unpair(key)
         point_array[idx, 0] = pad
         point_array[idx, 1] = tb
-        point_array[idx, 2] = point[1]
+        point_array[idx, 2] = data[0]
+        label_array[idx] = data[1]
 
-    return point_array
+    return point_array, label_array
 
 
 def simulate(
@@ -49,38 +53,31 @@ def simulate(
     mass_numbers: np.ndarray,
     config: Config,
     rng: Generator,
-    indicies: list[int] | None,
-) -> np.ndarray:
-    nuclei_to_sim = None
-    if indicies is not None:
-        nuclei_to_sim = indicies
-    else:
-        # default nuclei to sim, all final outgoing particles
-        nuclei_to_sim = [idx for idx in range(2, len(proton_numbers), 2)]
-        nuclei_to_sim.append(len(proton_numbers) - 1)  # add the last
-
-    points = Dict.empty(key_type=types.int64, value_type=types.int64)
-
-    for idx in nuclei_to_sim:
+    indicies: list[int],
+) -> tuple[np.ndarray, np.ndarray]:
+    points = Dict.empty(
+        key_type=types.int64, value_type=types.Tuple(types=[types.int64, types.int64])
+    )
+    for idx in indicies:
         if proton_numbers[idx] == 0:
             continue
         nucleus = nuclear_map.get_data(proton_numbers[idx], mass_numbers[idx])
         momentum = momenta[idx]
-        generate_point_cloud(momentum, vertex, nucleus, config, rng, points)
+        generate_point_cloud(momentum, vertex, nucleus, config, rng, points, idx)
 
     # Convert to numpy array of [pad, tb, e], now combined over pad/tb combos
-    point_array = dict_to_points(points)
+    point_array, label_array = dict_to_points(points)
 
     # Wiggle point TBs over interval [0.0, 1.0). This simulates effect of converting
     # the (in principle) int TBs to floats.
     point_array[:, 1] += rng.uniform(low=0.0, high=1.0, size=len(point_array))
 
     # Remove points outside legal bounds in time. TODO check if this is needed
-    point_array = point_array[
-        np.logical_and(0 <= point_array[:, 1], point_array[:, 1] < NUM_TB)
-    ]
+    mask = np.logical_and(0 <= point_array[:, 1], point_array[:, 1] < NUM_TB)
+    point_array = point_array[mask]
+    label_array = label_array[mask]
 
-    return point_array
+    return point_array, label_array
 
 
 def run_simulation(
@@ -107,8 +104,17 @@ def run_simulation(
     print(f"Applying detector effects to kinematics from file: {input_path}")
     input = h5.File(input_path, "r")
     input_data_group: h5.Group = input["data"]  # type: ignore
-    proton_numbers = input_data_group.attrs["proton_numbers"]
+    proton_numbers: np.ndarray = input_data_group.attrs["proton_numbers"]  # type: ignore
     mass_numbers = input_data_group.attrs["mass_numbers"]
+
+    # Decide which nuclei to sim, either by user input or all reaction final products
+    nuclei_to_sim = None
+    if indicies is not None:
+        nuclei_to_sim = indicies
+    else:
+        # default nuclei to sim, all final outgoing particles
+        nuclei_to_sim = [idx for idx in range(2, len(proton_numbers), 2)]
+        nuclei_to_sim.append(len(proton_numbers) - 1)  # add the last
 
     n_events: int = input_data_group.attrs["n_events"]  # type: ignore
     miniters = int(0.01 * n_events)
@@ -138,7 +144,7 @@ def run_simulation(
         dataset: h5.Dataset = input_data_group[f"chunk_{chunk}"][  # type: ignore
             f"event_{event_number}"
         ]  # type: ignore
-        cloud = simulate(
+        cloud, labels = simulate(
             dataset[:].copy(),  # type: ignore
             np.array(
                 [
@@ -151,13 +157,13 @@ def run_simulation(
             mass_numbers,  # type: ignore
             config,
             rng,
-            indicies,
+            nuclei_to_sim,
         )
 
         if len(cloud) == 0:
             continue
 
-        writer.write(cloud, config, event_number)
+        writer.write(cloud, labels, config, event_number)
     writer.close()
     print("Done.")
     print("----------------------------------------")
