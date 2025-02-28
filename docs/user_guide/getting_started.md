@@ -143,7 +143,7 @@ from attpc_engine.detector import (
 )
 
 from attpc_engine import nuclear_map
-from spyral_utils.nuclear.target import TargetData, GasTarget
+from spyral_utils.nuclear.target import load_target, GasTarget
 from pathlib import Path
 
 input_path = Path("./output/kinematics/c16dd_d2_300Torr_184MeV.h5")

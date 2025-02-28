@@ -12,7 +12,8 @@ STEPS = 10
 def bivariate_normal_pdf(
     point: tuple[float, float], mu: tuple[float, float], sigma: float
 ) -> float:
-    """
+    """Sample a bivariate normal pdf
+
     Equation of PDF corresponding to a 2D normal distribution where sigma is the same
     for both x and y and there is no correlation between the two variables.
 
@@ -42,7 +43,8 @@ def bivariate_normal_pdf(
 
 @njit
 def meshgrid(xarr: np.ndarray, yarr: np.ndarray) -> np.ndarray:
-    """
+    """JIT-ed implementation of meshgrid
+
     Creates a rectangular (x, y) grid from the input arrays and
     returns a Nx2 array where each row is a point in the mesh.
 
@@ -77,7 +79,8 @@ def meshgrid(xarr: np.ndarray, yarr: np.ndarray) -> np.ndarray:
 def position_to_index(
     grid_edges: np.ndarray, position: tuple[float, float]
 ) -> tuple[int, int]:
-    """
+    """Convert a position to pad map index
+
     Given an input position in (x, y), outputs the index on the pad map
     corresponding to that position. For information about the format of
     the pad map, see the load_pad_grid method of the Config class in
@@ -124,9 +127,11 @@ def point_transport(
     time: float,
     center: tuple[float, float],
     electrons: int,
-    points: NumbaTypedDict[int, int],
+    points: NumbaTypedDict[int, tuple[int, int]],
+    label: int,
 ):
-    """
+    """Transport electrons without diffusion
+
     Transports all electrons created at a point in a simulated nucleus' track
     straight to the pad plane.
 
@@ -143,9 +148,11 @@ def point_transport(
         (x,y) position of point being transported.
     electrons: int
         Number of electrons made at point being transported.
-    points: numba.typed.Dict[int, int]
+    points: numba.typed.Dict[int, tuple[int, int]]
         A dictionary mapping a unique pad,tb key to the number of electrons, which
         will be filled by this function
+    label: int
+        The label for all points created in this call
     """
     # Find pad number of hit pad, if it exists
     index_x, index_y = position_to_index(grid_edges, center)
@@ -157,9 +164,9 @@ def point_transport(
     if pad != -1 and pad not in BEAM_PADS_ARRAY:
         tb = int(time)  # Convert from absolute time bucket to discretized
         id = pair(tb, pad)
-        points[id] = (
-            points.get(id, 0) + electrons
-        )  # The get returns 0 if the key doesn't exist
+        charge, _ = points.get(id, (0, 0))  # The get returns 0 if the key doesn't exist
+        charge += electrons
+        points[id] = (charge, label)
 
 
 @njit
@@ -170,9 +177,11 @@ def transverse_transport(
     center: tuple[float, float],
     electrons: int,
     sigma_t: float,
-    points: NumbaTypedDict[int, int],
+    points: NumbaTypedDict[int, tuple[int, int]],
+    label: int,
 ):
-    """
+    """Transport electrons with transverse diffusion
+
     Transports all electrons created at a point in a simulated nucleus'
     track to the pad plane with transverse diffusion applied. This is done by
     creating a square mesh roughly centered on the point where the electrons are
@@ -199,9 +208,11 @@ def transverse_transport(
     sigma_t: float
         Standard deviation of transverse diffusion at point
         being transported.
-    points: numba.typed.Dict[int, int]
-        A dictionary mapping a unique pad,tb key to the number of electrons, which
-        will be filled by this function
+    points: numba.typed.Dict[int, tuple[int, int]]
+        A dictionary mapping a unique pad,tb key to the number of electrons and  label,
+        which will be filled by this function
+    label: int
+        The label for all points in this call
     """
     mesh_centerx: float = center[0]
     mesh_centery: float = center[1]
@@ -233,60 +244,9 @@ def transverse_transport(
                     * electrons
                 )
             )
-            points[id] = (
-                points.get(id, 0) + pixel_electrons
-            )  # The get returns 0 if the key doesn't exist
-
-
-@njit
-def find_pads_hit(
-    pad_grid: np.ndarray,
-    grid_edges: np.ndarray,
-    time: float,
-    center: tuple[float, float],
-    electrons: int,
-    sigma_t: float,
-    points: NumbaTypedDict[int, int],
-):
-    """
-    Finds the pads hit by transporting the electrons created at a point in
-    the nucleus' trajectory to the pad plane and applies transverse diffusion, if selected.
-
-    Parameters
-    ----------
-    pad_grid: numpy.ndarray
-        Grid of pad id for a given index, where index is calculated from x-y position
-    grid_edges: numpy.ndarray
-        Edges of the pad grid in mm, as well as the step size of the grid in mm
-        Allows conversion of position to grid index. 3 element array [low_edge, hi_edge, step]
-    time: float
-        Time of point being transported.
-    center: tuple[float, float]
-        (x,y) position of point being transported.
-    electrons: int
-        Number of electrons made at point being transported.
-    sigma_t: float
-        Standard deviation of transverse diffusion at point
-        being transported.
-    points: numba.typed.Dict[int, int]
-        A dictionary mapping a unique pad,tb key to the number of electrons, which
-        will be filled by this function
-    """
-    # Point transport
-    if sigma_t == 0.0:
-        point_transport(pad_grid, grid_edges, time, center, electrons, points)
-
-    # Transverse diffusion transport
-    else:
-        transverse_transport(
-            pad_grid,
-            grid_edges,
-            time,
-            center,
-            electrons,
-            sigma_t,
-            points,
-        )
+            charge, _ = points.get(id, (0, 0))
+            charge += pixel_electrons
+            points[id] = (charge, label)  # The get returns 0 if the key doesn't exist
 
 
 @njit
@@ -298,9 +258,11 @@ def transport_track(
     dv: float,
     track: np.ndarray,
     electrons: np.ndarray,
-    points: NumbaTypedDict[int, int],
+    points: NumbaTypedDict[int, tuple[int, int]],
+    label: int,
 ):
-    """
+    """Transport electrons generated by a trajectory to the AT-TPC pad plane
+
     High-level function that transports each point in a nucleus' trajectory
     to the pad plane, applying transverse diffusion if specified.
 
@@ -323,9 +285,12 @@ def transport_track(
         Nx6 array where each row is a solution to one of the ODEs evaluated at
         the Nth time step.
     electrons: np.ndarray
-        1xN array of electrons created each time step (point) of the trajectory.
-    points: numba.typed.Dict[int, int]
-        A dictionary mapping a unique pad,tb key to the number of electrons.
+        Length N array of electrons created each time step (point) of the trajectory.
+    points: numba.typed.Dict[int, tuple[int, int]]
+        A dictionary mapping a unique pad,tb key to the number of electrons and a label,
+        which will be filled by this function.
+    label: int
+        The label for all points generated by this call
     """
 
     # Each point is a TB/pad combo in the TPC
@@ -334,6 +299,19 @@ def transport_track(
         center = (row[0], row[1])
         point_electrons = electrons[idx]
         sigma_t = np.sqrt(2.0 * diffusion * dv * time / efield)
-        find_pads_hit(
-            pad_grid, grid_edges, time, center, point_electrons, sigma_t, points
-        )
+        if sigma_t == 0.0:
+            point_transport(
+                pad_grid, grid_edges, time, center, point_electrons, points, label
+            )
+        # Transverse diffusion transport
+        else:
+            transverse_transport(
+                pad_grid,
+                grid_edges,
+                time,
+                center,
+                point_electrons,
+                sigma_t,
+                points,
+                label,
+            )

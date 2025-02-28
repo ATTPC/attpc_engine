@@ -15,23 +15,27 @@ class SimulationWriter(Protocol):
 
     Methods
     -------
-    write(data: np.ndarray, config: Config, event_number: int) -> None
+    write(data, labels, config, event_number)
         Writes a simulated point cloud to the point cloud file.
-    get_filename() -> Path
+    get_directory_name()
         Returns directory that point cloud files are written to.
-    close() -> None
+    close()
         Closes the writer.
     """
 
-    def write(self, data: np.ndarray, config: Config, event_number: int) -> None:
-        """
-        Writes a simulated point cloud to the point cloud file.
+    def write(
+        self, data: np.ndarray, labels: np.ndarray, config: Config, event_number: int
+    ) -> None:
+        """Writes a simulated point cloud to the point cloud file.
 
         Parameters
         ----------
-        data: np.ndarray
+        data: numpy.ndarray
             An Nx3 array representing the point cloud. Each row is a point, with elements
             [pad id, time bucket, electrons].
+        labels: numpy.ndarray
+            A length N array containing labels for points in the pointcloud, indicating
+            which nucleus produced the point.
         config: Config
             The simulation configuration.
         event_number: int
@@ -40,15 +44,17 @@ class SimulationWriter(Protocol):
         pass
 
     def get_directory_name(self) -> Path:  # type: ignore
-        """
-        Returns directory that point cloud files are written to.
+        """Returns directory that point cloud files are written to.
+
+        Returns
+        -------
+        pathlib.Path
+            The path the output directory
         """
         pass
 
     def close(self) -> None:
-        """
-        Closes the writer.
-        """
+        """Closes the writer."""
         pass
 
 
@@ -61,10 +67,8 @@ def convert_to_spyral(
     response: np.ndarray,
     pad_centers: np.ndarray,
     pad_sizes: np.ndarray,
-    adc_threshold: int,
 ) -> np.ndarray:
-    """
-    Converts a simulated point in the point cloud to Spyral formatting.
+    """Converts a simulated point in the point cloud to Spyral formatting.
 
     Parameters
     ----------
@@ -83,8 +87,6 @@ def convert_to_spyral(
         (x, y) coordinates of each pad's center on the pad plane in mm.
     pad_sizes: np.ndarray
         Contains size of each pad.
-    adc_threshold: int
-        Minimum ADC signal amplitude a point must have in the point cloud.
 
     Returns
     -------
@@ -107,21 +109,18 @@ def convert_to_spyral(
         storage[idx, 6] = point[1]
         storage[idx, 7] = pad_sizes[int(point[0])]
 
-    if adc_threshold >= 4095:
-        raise ValueError(
-            "adc_threshold cannot be equal to or greater than the max GET ADC value!"
-        )
-    return storage[storage[:, 3] > adc_threshold]
+    return storage
 
 
 class SpyralWriter:
-    """
-    Writer for default Spyral analysis. Writes the simulated data into multiple
-    files to take advantage of Spyral's multiprocessing.
+    """Writer for default Spyral analysis.
+
+    Writes the simulated data into multiple files to take advantage of
+    Spyral's multiprocessing.
 
     Parameters
     ----------
-    directory_path: Path
+    directory_path: pathlib.Path
         Path to directory to store simulated point cloud files.
     config: Config
         The simulation configuration.
@@ -136,7 +135,7 @@ class SpyralWriter:
     ----------
     directory_path: pathlib.Path
         The path to the directory data will be written to
-    response: np.ndarray
+    response: numpy.ndarray
         Response of GET electronics.
     max_events_per_file: int
         The maximum number of events per file
@@ -146,19 +145,19 @@ class SpyralWriter:
         The first event number of the file currently being written to
     events_written: int
         The number of events that have been written
-    file: h5.File
+    file: h5py.File
         h5 file object. It is the actual point cloud file currently
         being written to.
-    cloud_group: h5.Group
+    cloud_group: h5py.Group
         "cloud" group in current point cloud file.
 
     Methods
     -------
-    write(data: np.ndarray, config: Config, event_number: int) -> None
+    write(data, config, event_number)
         Writes a simulated point cloud to the point cloud file.
-    get_filename() -> Path
+    get_directory_name()
         Returns directory that point cloud files are written to.
-    close() -> None
+    close()
         Closes the writer with metadata written
     """
 
@@ -167,7 +166,7 @@ class SpyralWriter:
         directory_path: Path,
         config: Config,
         max_events_per_file: int = 5_000,
-        first_run_number=0,
+        first_run_number: int = 0,
     ):
         self.directory_path: Path = directory_path
         self.response: np.ndarray = get_response(config).copy()
@@ -191,15 +190,20 @@ class SpyralWriter:
         self.file = h5.File(path, "w")
         self.cloud_group: h5.Group = self.file.create_group("cloud")
 
-    def write(self, data: np.ndarray, config: Config, event_number: int) -> None:
+    def write(
+        self, data: np.ndarray, labels: np.ndarray, config: Config, event_number: int
+    ) -> None:
         """
         Writes a simulated point cloud to the point cloud file.
 
         Parameters
         ----------
-        data: np.ndarray
+        data: numpy.ndarray
             An Nx3 array representing the point cloud. Each row is a point, with elements
             [pad id, time bucket, electrons].
+        labels: numpy.ndarray
+            A length N array of labels indicating which nucleus produced the point in
+            the point cloud.
         config: Config
             The simulation configuration.
         event_number: int
@@ -222,23 +226,28 @@ class SpyralWriter:
             self.response,
             config.pad_centers,
             config.pad_sizes,
-            config.elec_params.adc_threshold,
         )
+        # apply ADC threshold
+        mask = spyral_format[:, 3] > config.elec_params.adc_threshold
+        spyral_format = spyral_format[mask]
+        labels = labels[mask]
         # Make sure we're still sorted in z
         indicies = np.argsort(spyral_format[:, 2])
         spyral_format = spyral_format[indicies]
+        labels = labels[indicies]
 
-        dset = self.cloud_group.create_dataset(
+        pc_dset = self.cloud_group.create_dataset(
             f"cloud_{event_number}", data=spyral_format
         )
-
-        dset.attrs["orig_run"] = self.run_number
-        dset.attrs["orig_event"] = event_number
+        pc_dset.attrs["orig_run"] = self.run_number
+        pc_dset.attrs["orig_event"] = event_number
         # No ic stuff from simulation
-        dset.attrs["ic_amplitude"] = -1.0
-        dset.attrs["ic_multiplicity"] = -1.0
-        dset.attrs["ic_integral"] = -1.0
-        dset.attrs["ic_centroid"] = -1.0
+        pc_dset.attrs["ic_amplitude"] = -1.0
+        pc_dset.attrs["ic_multiplicity"] = -1.0
+        pc_dset.attrs["ic_integral"] = -1.0
+        pc_dset.attrs["ic_centroid"] = -1.0
+
+        _ = self.cloud_group.create_dataset(f"labels_{event_number}", data=labels)
 
         # We wrote an event
         self.events_written += 1
