@@ -13,7 +13,7 @@ includes effects pointed out by Adam Anthony in his [thesis](https://ezproxy.msu
 The detector system code simulates an event by going through a series of steps to 
 ultimately produce its point cloud. For each event, the detector system:
 
-1. Generate the trajectory of the each nucleus in the exit channel of the event by solving its equation of motion in the AT-TPC with a fine grained-timestep
+1. Generate the trajectory of the each nucleus in the exit channel (or the nuclei specified by the user) of the event by solving its equation of motion in the AT-TPC with a fine grained-timestep
 2. Determines how many electrons are created at each point of each nucleus' trajectory
 3. Converts the z coordinate of each point in each trajectory to a GET electronics sampling-frequency based Time Bucket using the electron drift velocity
 3. Transports each point of the nucleus' trajectory to the pad plane, applying diffusion if requested, to identify the sensing pad for each timestep
@@ -140,6 +140,17 @@ given by the index of the nucleus in the kinematics list. For example, in a simp
 step reaction a(b,c)d a=0, b=1, c=2, d=3. In a two step, a(b,c)d->e+f, e=4, f=5, and so
 on for more complex scenarios. These labels are particularly useful for evaluating the
 performance of machine learning methods like clustering in downstream analyses.
+
+## Which nuclei get simulated in the detector simulation
+
+By default, the detector simulation considers all nuclei in the exit channel. That is,
+in a two step reaction a(b,c)d->e+f, the nuclei c, e, f are included in the detector
+simulation and used to generate a point cloud. However, this is not always desireable. 
+In some usecases, only on particle is interesting and all others simply generate extra
+data. As such, the `run_simulation` function contains an optional keyword argument 
+`indices` which can be used to specify the indices of the nuclei to include in the 
+detector simulation. Indices follow the same convention as the kinematics simulation,
+i.e. for our earlier example two step reaction a=0, b=1, c=2, d=3, e=4, and f=5.
 
 ## Why Point clouds
 

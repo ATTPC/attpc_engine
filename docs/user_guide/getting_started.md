@@ -1,6 +1,7 @@
 # Getting Started
 
-Once attpc_engine is installed it's time to setup our simulation project. Below is an outline of what we'd expect your project structure to look like
+Once attpc_engine is installed it's time to setup our simulation project. Below is an 
+outline of what we'd expect your project structure to look like
 
 ```txt
 |---my_sim
@@ -13,13 +14,18 @@ Once attpc_engine is installed it's time to setup our simulation project. Below 
 |   |   |---detector
 ```
 
-You have a folder (in this case called `my_sim`) with two Python files (`generate_kinematics.py` and `apply_detector.py`) a virtual environment with attpc_engine installed (`.venv`) and an output directory with a folder for kinematics and detector effects. Note that you may want the output to be stored on a remote disk or other location as simulation files can be big at times (> 1 GB).
+You have a folder (in this case called `my_sim`) with two Python files 
+(`generate_kinematics.py` and `apply_detector.py`) a virtual environment with 
+attpc_engine installed (`.venv`) and an output directory with a folder for kinematics 
+and detector effects. Note that you may want the output to be stored on a remote disk 
+or other location as simulation files can be big at times (> 1 GB).
 
 Now lets talk about generating and sampling a kinematics phase space!
 
 ## Sampling Kinematics
 
-Below is an example script for running a kinematics sample, which in our example project we would write in `my_sim/generate_kinematics.py`
+Below is an example script for running a kinematics sample, which in our example 
+project we would write in `my_sim/generate_kinematics.py`
 
 ```python
 from attpc_engine.kinematics import (
@@ -70,10 +76,13 @@ if __name__ == "__main__":
     main()
 ```
 
-First we import all of our pieces from the attpc_engine library and its dependencies. We also import the Python standard library Path object to handle our file paths.
+First we import all of our pieces from the attpc_engine library and its dependencies. 
+We also import the Python standard library Path object to handle our file paths.
 
-We then start to define our kinematics configuration. First we define the output path to be an HDF5 file in our output directory. 
-We also load a spyral-utils [gas target](https://attpc.github.io/spyral-utils/api/nuclear/target) from a file path.
+We then start to define our kinematics configuration. First we define the output path 
+to be an HDF5 file in our output directory. 
+We also load a spyral-utils [gas target](https://attpc.github.io/spyral-utils/api/nuclear/target)
+from a file path.
 
 ```python
 target = load_target(target_path, nuclear_map)
@@ -90,7 +99,21 @@ nevents = 10000
 beam_energy = 184.131 # MeV
 ```
  
-Now were ready to define our kinematics Pipeline. The first argument of the Pipeline is a list of steps, where each step is either a Reaction or Deacy. The first element of the list must *always* be a Reaction, and all subsequent steps are *always* Decays. The residual of the previous step is *always* the parent of the next step. The Pipeline will attempt to validate this information for you. We also must define a list of ExcitationDistribution objects. These describe the state in the residual that is populated by each Reaction/Decay. There is exactly *one* distribution per step. There are two types of predefined ExcitationDistributions (ExcitationGaussian and ExcitationUniform), but others can be implemented by implementing the ExcitationDistribution protocol. Similarly, we use PolarUniform to define a uniform polar angle distribution from 0 degrees to 180 degrees in the center of mass frame (technically, this is from -1 to 1 in cos(polar)). We also define our KinematicsTargetMaterial, which includes our gas target, as well as the allowed space within the target for our reaction vertex (range in z in meters and standard deviation of cylindrical &rho; in meters).
+Now were ready to define our kinematics Pipeline. The first argument of the Pipeline 
+is a list of steps, where each step is either a Reaction or Deacy. The first element 
+of the list must *always* be a Reaction, and all subsequent steps are *always* Decays. 
+The residual of the previous step is *always* the parent of the next step. The 
+Pipeline will attempt to validate this information for you. We also must define a list 
+of ExcitationDistribution objects. These describe the state in the residual that is 
+populated by each Reaction/Decay. There is exactly *one* distribution per step. There 
+are two types of predefined ExcitationDistributions (ExcitationGaussian and 
+ExcitationUniform), but others can be implemented by implementing the 
+ExcitationDistribution protocol. Similarly, we use PolarUniform to define a uniform 
+polar angle distribution from 0 degrees to 180 degrees in the center of mass frame 
+(technically, this is from -1 to 1 in cos(polar)). We also define our 
+KinematicsTargetMaterial, which includes our gas target, as well as the allowed space 
+within the target for our reaction vertex (range in z in meters and standard deviation 
+of cylindrical &rho; in meters).
 
 ```python
 pipeline = KinematicsPipeline(
@@ -126,11 +149,13 @@ if __name__ == "__main__":
     main()
 ```
 
-That's it! This script will then sample 10000 events from the kinematic phase space of ${}^{16}C(d,d')$ and write the data out to an HDF5 file in our output directory.
+That's it! This script will then sample 10000 events from the kinematic phase space of 
+${}^{16}C(d,d')$ and write the data out to an HDF5 file in our output directory.
 
 ## Applying the Detector
 
-Below is an example script for running a kinematics sample, which in our example project we would write in `my_sim/apply_detector.py`
+Below is an example script for running a kinematics sample, which in our example 
+project we would write in `my_sim/apply_detector.py`
 
 ```python
 from attpc_engine.detector import (
@@ -193,7 +218,10 @@ if __name__ == "__main__":
     main()
 ```
 
-Just like in the kinematics script, we start off by importing a whole bunch of code. Next we define our kinematics input (which is the output of the kinematics script) and an output path. Note that for the output path we simply specify a directory; this is because our writer will handle breaking up the output data into reasonably sized files.
+Just like in the kinematics script, we start off by importing a whole bunch of code. 
+Next we define our kinematics input (which is the output of the kinematics script) and 
+an output path. Note that for the output path we simply specify a directory; this is 
+because our writer will handle breaking up the output data into reasonably sized files.
 
 ```python
 input_path = Path("output/kinematics/c16dd_d2_300Torr_184MeV.h5")
@@ -209,7 +237,8 @@ if not isinstance(gas, GasTarget):
     raise Exception(f"Could not load target data from {target_path}!")
 ```
 
-and finally we begin to define the detector specific configuration, which is ultimately stored in a Config object.
+and finally we begin to define the detector specific configuration, which is ultimately 
+stored in a Config object.
 
 ```python
 detector = DetectorParams(
@@ -237,13 +266,21 @@ pads = PadParams()
 config = Config(detector, electronics, pads)
 ```
 
-Note that by not passing any arguments to `PadParams` we are using the default pad description that is bundled with the package. See the [detector](./detector/index.md) guide for more details. For the output, we create a SpyralWriter object. This will take in the simulation data and convert it to match the format expected by the Spyral analysis. Note the final argument of the Writer; this is the maximum size of an individual file in events (here we've specified 5,000 events). The writer will then split our output up into many files, which will help later when trying to analyze the data with a framework like Spyral.
+Note that by not passing any arguments to `PadParams` we are using the default pad 
+description that is bundled with the package. See the [detector](./detector/index.md) 
+guide for more details. For the output, we create a SpyralWriter object. This will take
+in the simulation data and convert it to match the format expected by the Spyral 
+analysis. Note the final argument of the Writer; this is the maximum size of an 
+individual file in events (here we've specified 5,000 events). The writer will then 
+split our output up into many files, which will help later when trying to analyze the 
+data with a framework like Spyral.
 
 ```python
 writer = SpyralWriter(output_path, config, 5_000)
 ```
 
-Then, just like in the kinematics script we set up a main function and set it to be run when the script is processed
+Then, just like in the kinematics script we set up a main function and set it to be 
+run when the script is processed
 
 ```python
 def main():
@@ -257,7 +294,25 @@ if __name__ == "__main__":
     main()
 ```
 
-And just like that, we can now take our kinematic samples and apply detector effects!
+And just like that, we can now take our kinematic samples and apply detector effects! 
+Note that by default the simulation will apply detector effects and generate a point cloud
+containing *every single final product* from the kinematics simulation. If you only want
+to generate a point cloud containing specific particles you can utilize the `indices`
+argument of `run_simulation`:
+
+```python
+def main():
+    run_simulation(
+        config,
+        input_path,
+        writer,
+        indices=[2],
+    )
+```
+
+The `indices` argument is a list of particle indices to be included in the simulation.
+The indicies follow the same convention as the kinematics simulation: i.e. for a reaction
+a(b,c)d a=0, b=1, c=2, d=3. If you have a decay a(b,c)d->e+f e=4, f=5, and so on.
 
 ## More Details
 
