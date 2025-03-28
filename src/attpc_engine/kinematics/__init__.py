@@ -13,7 +13,7 @@ from .excitation import (
     ExcitationBreitWigner,
 )
 
-from .angle import PolarDistribution, PolarUniform
+from .angle import PolarDistribution, PolarUniform, PolarArbitrary
 
 from .reaction import Reaction, Decay
 
@@ -26,6 +26,7 @@ __all__ = [
     "ExcitationUniform",
     "ExcitationBreitWigner",
     "PolarDistribution",
+    "PolarArbitrary",
     "PolarUniform",
     "Reaction",
     "Decay",

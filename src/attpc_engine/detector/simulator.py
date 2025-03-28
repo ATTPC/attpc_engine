@@ -56,7 +56,7 @@ def simulate(
     mass_numbers: np.ndarray,
     config: Config,
     rng: Generator,
-    indicies: list[int],
+    indices: list[int],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Apply detector simulation to a kinematics event
 
@@ -78,7 +78,7 @@ def simulate(
         The detector simulation parameters
     rng: numpy.random.Generator
         A random number generator
-    indicies: list[int]
+    indices: list[int]
         The indicies in the list of nuclei which should be simulated.
         Typically this would be all final products of the reaction
 
@@ -93,7 +93,7 @@ def simulate(
     points = Dict.empty(
         key_type=types.int64, value_type=types.Tuple(types=[types.int64, types.int64])
     )
-    for idx in indicies:
+    for idx in indices:
         if proton_numbers[idx] == 0:
             continue
         nucleus = nuclear_map.get_data(proton_numbers[idx], mass_numbers[idx])
@@ -119,7 +119,7 @@ def run_simulation(
     config: Config,
     input_path: Path,
     writer: SimulationWriter,
-    indicies: list[int] | None = None,
+    indices: list[int] | None = None,
 ):
     """Run the detector simulation
 
@@ -134,7 +134,7 @@ def run_simulation(
         Path to HDF5 file containing kinematics
     writer: SimulationWriter
         An object which implements the SimulationWriter Protocol
-    indicies: list[int] | None
+    indices: list[int] | None
         List of which nuclei to include in the detector simulation. Nuclei are
         specified by index of which they occur in the kinematic arrays. For example,
         in a simple one step reaction, a(b,c)d 0=a, 1=b, 2=c, 3=d. For two step
@@ -150,8 +150,8 @@ def run_simulation(
 
     # Decide which nuclei to sim, either by user input or all reaction final products
     nuclei_to_sim = None
-    if indicies is not None:
-        nuclei_to_sim = indicies
+    if indices is not None:
+        nuclei_to_sim = indices
     else:
         # default nuclei to sim, all final outgoing particles
         nuclei_to_sim = [idx for idx in range(2, len(proton_numbers), 2)]
