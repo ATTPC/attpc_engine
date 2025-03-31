@@ -173,6 +173,7 @@ class SpyralWriter:
         self.max_events_per_file: int = max_events_per_file
         self.run_number = first_run_number
         self.starting_event = 0  # Kinematics generator always starts with event 0
+        self.last_event = 0  # What event number do we end on
         self.events_written = 0  # haven't written anything yet
         # initialize the first file
         path: Path = self.directory_path / f"run_{self.run_number:04d}.h5"
@@ -250,6 +251,7 @@ class SpyralWriter:
         _ = self.cloud_group.create_dataset(f"labels_{event_number}", data=labels)
 
         # We wrote an event
+        self.last_event = event_number
         self.events_written += 1
 
     def set_number_of_events(self) -> None:
@@ -258,9 +260,7 @@ class SpyralWriter:
         Stores first and last event numbers in the attributes
         """
         self.cloud_group.attrs["min_event"] = self.starting_event
-        self.cloud_group.attrs["max_event"] = (
-            self.starting_event + self.events_written - 1
-        )  # starting event counts towards number written
+        self.cloud_group.attrs["max_event"] = self.last_event
 
     def get_directory_name(self) -> Path:
         """Returns directory that point cloud files are written to.
